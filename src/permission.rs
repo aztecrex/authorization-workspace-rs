@@ -1,9 +1,9 @@
-
 use crate::condition::*;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Permission {
-    ALLOW, DENY
+    ALLOW,
+    DENY,
 }
 
 pub enum ConditionalPermission<CExp> {
@@ -11,24 +11,25 @@ pub enum ConditionalPermission<CExp> {
     Atomic(Permission, CExp),
 }
 
-impl <CExp> ConditionalPermission<CExp> {
+impl<CExp> ConditionalPermission<CExp> {
     pub fn resolve<Env>(&self, environment: &Env) -> Option<Permission>
-        where Env: Environment<CExp = CExp> {
-            use ConditionalPermission::*;
-            match self {
-                Silent => None,
-                Atomic(perm, cexp) => {
-                    let matched = environment.test_condition(cexp).ok().unwrap();
-                    if matched {
-                        Some(*perm)
-                    } else {
-                        None
-                    }
+    where
+        Env: Environment<CExp = CExp>,
+    {
+        use ConditionalPermission::*;
+        match self {
+            Silent => None,
+            Atomic(perm, cexp) => {
+                let matched = environment.test_condition(cexp).ok().unwrap();
+                if matched {
+                    Some(*perm)
+                } else {
+                    None
                 }
             }
+        }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -36,7 +37,9 @@ mod tests {
     use super::*;
 
     enum TestExpression {
-        Match, Miss, _Error
+        Match,
+        Miss,
+        _Error,
     }
 
     struct TestEnv;
@@ -55,10 +58,8 @@ mod tests {
         }
     }
 
-
     #[test]
     fn resolve_silent() {
-
         let perm = ConditionalPermission::<TestExpression>::Silent;
 
         let actual = perm.resolve(&TestEnv);
@@ -68,46 +69,37 @@ mod tests {
 
     #[test]
     fn resolve_atomic_allow_match() {
-
         let perm = ConditionalPermission::Atomic(Permission::ALLOW, TestExpression::Match);
 
         let actual = perm.resolve(&TestEnv);
 
         assert_eq!(actual, Some(Permission::ALLOW));
-
     }
 
     #[test]
     fn resolve_atomic_deny_match() {
-
         let perm = ConditionalPermission::Atomic(Permission::DENY, TestExpression::Match);
 
         let actual = perm.resolve(&TestEnv);
 
         assert_eq!(actual, Some(Permission::DENY));
-
     }
 
     #[test]
     fn resolve_atomic_allow_miss() {
-
         let perm = ConditionalPermission::Atomic(Permission::ALLOW, TestExpression::Miss);
 
         let actual = perm.resolve(&TestEnv);
 
         assert_eq!(actual, None);
-
     }
 
     #[test]
     fn resolve_atomic_deny_miss() {
-
         let perm = ConditionalPermission::Atomic(Permission::DENY, TestExpression::Miss);
 
         let actual = perm.resolve(&TestEnv);
 
         assert_eq!(actual, None);
-
     }
-
 }

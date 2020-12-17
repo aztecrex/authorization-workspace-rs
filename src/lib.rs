@@ -1,9 +1,5 @@
-pub mod permission;
 pub mod condition;
-
-
-
-
+pub mod permission;
 
 #[cfg(test)]
 mod tests {
