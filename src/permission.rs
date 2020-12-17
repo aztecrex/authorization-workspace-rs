@@ -11,8 +11,6 @@ pub enum ConditionalPermission<CExp> {
     Atomic(Permission, CExp),
 }
 
-
-
 impl <CExp> ConditionalPermission<CExp> {
     pub fn resolve<Env>(&self, environment: &Env) -> Option<Permission>
         where Env: Environment<CExp = CExp> {
@@ -111,6 +109,5 @@ mod tests {
         assert_eq!(actual, None);
 
     }
-
 
 }
