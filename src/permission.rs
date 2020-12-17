@@ -1,4 +1,5 @@
 
+use crate::condition::*;
 
 // pub enum Policy {
 //     Silent,
@@ -14,27 +15,38 @@ pub enum ConditionalPermission<CExp> {
     Atomic(Permission, CExp),
 }
 
-pub trait ConditionExpression {
-    type Err;
-    fn evaluate(&self) -> Result<bool, Self::Err>;
-}
 
 
-impl <CExp: ConditionExpression> ConditionalPermission<CExp> {
-    pub fn resolve(&self) -> Option<Permission> {
-        use ConditionalPermission::*;
-        match self {
-            Silent => None,
-            Atomic(_perm, cexp) => {
-                let matched = cexp.evaluate().ok().unwrap();
-                if matched {
-                    Some(*_perm)
-                } else {
-                    None
+impl <CExp> ConditionalPermission<CExp> {
+    pub fn resolve<Env>(&self, environment: &Env) -> Option<Permission>
+        where Env: Environment<CExp = CExp> {
+            use ConditionalPermission::*;
+            match self {
+                Silent => None,
+                Atomic(perm, cexp) => {
+                    let matched = environment.test_condition(cexp).ok().unwrap();
+                    if matched {
+                        Some(*perm)
+                    } else {
+                        None
+                    }
                 }
-            },
-        }
+            }
     }
+    // pub fn resolve(&self) -> Option<Permission> {
+    //     use ConditionalPermission::*;
+    //     match self {
+    //         Silent => None,
+    //         Atomic(_perm, cexp) => {
+    //             let matched = cexp.evaluate().ok().unwrap();
+    //             if matched {
+    //                 Some(*_perm)
+    //             } else {
+    //                 None
+    //             }
+    //         },
+    //     }
+    // }
 }
 
 
@@ -44,18 +56,21 @@ mod tests {
     use super::*;
 
     enum TestExpression {
-        Match, Miss, Error
+        Match, Miss, _Error
     }
 
-    impl ConditionExpression for TestExpression {
-        type Err = ();
+    struct TestEnv;
 
-        fn evaluate(&self) -> Result<bool, ()> {
+    impl Environment for TestEnv {
+        type Err = ();
+        type CExp = TestExpression;
+
+        fn test_condition(&self, exp: &Self::CExp) -> Result<bool, Self::Err> {
             use TestExpression::*;
-            match self {
+            match exp {
                 Match => Ok(true),
                 Miss => Ok(false),
-                Error => Err(()),
+                _Error => Err(()),
             }
         }
     }
@@ -68,7 +83,7 @@ mod tests {
         let perm = ConditionalPermission::<TestExpression>::Silent;
 
         // w
-        let actual = perm.resolve();
+        let actual = perm.resolve(&TestEnv);
 
         // t
         assert_eq!(actual, None);
@@ -79,7 +94,7 @@ mod tests {
 
         let perm = ConditionalPermission::Atomic(Permission::ALLOW, TestExpression::Match);
 
-        let actual = perm.resolve();
+        let actual = perm.resolve(&TestEnv);
 
         assert_eq!(actual, Some(Permission::ALLOW));
 
@@ -90,7 +105,7 @@ mod tests {
 
         let perm = ConditionalPermission::Atomic(Permission::DENY, TestExpression::Match);
 
-        let actual = perm.resolve();
+        let actual = perm.resolve(&TestEnv);
 
         assert_eq!(actual, Some(Permission::DENY));
 
@@ -101,7 +116,7 @@ mod tests {
 
         let perm = ConditionalPermission::Atomic(Permission::ALLOW, TestExpression::Miss);
 
-        let actual = perm.resolve();
+        let actual = perm.resolve(&TestEnv);
 
         assert_eq!(actual, None);
 
@@ -112,7 +127,7 @@ mod tests {
 
         let perm = ConditionalPermission::Atomic(Permission::DENY, TestExpression::Miss);
 
-        let actual = perm.resolve();
+        let actual = perm.resolve(&TestEnv);
 
         assert_eq!(actual, None);
 
