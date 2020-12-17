@@ -10,6 +10,7 @@ pub enum ConditionalPermission<CExp> {
     Silent,
     Atomic(Permission, CExp),
     Fixed(Permission),
+    Aggregate(Vec<ConditionalPermission<CExp>>),
 }
 
 impl<CExp> ConditionalPermission<CExp> {
@@ -29,6 +30,13 @@ impl<CExp> ConditionalPermission<CExp> {
                 }
             }
             Fixed(perm) => Ok(Some(*perm)),
+            Aggregate(perms) => {
+                if perms.is_empty() {
+                    Ok(None)
+                } else {
+                    perms.get(0).unwrap().resolve(environment)
+                }
+            }
         }
     }
 }
@@ -138,5 +146,45 @@ mod tests {
         let actual = perm.resolve(&TestEnv);
 
         assert_eq!(actual, Ok(Some(DENY)));
+    }
+
+    #[test]
+    fn resolve_aggregate_empty() {
+        let perm = ConditionalPermission::Aggregate(vec![]);
+
+        let actual = perm.resolve(&TestEnv);
+
+        assert_eq!(actual, Ok(None));
+    }
+
+    #[test]
+    fn resolve_aggregate_single_allow() {
+        use Permission::*;
+
+        let perm = ConditionalPermission::Aggregate(vec![ConditionalPermission::Fixed(ALLOW)]);
+
+        let actual = perm.resolve(&TestEnv);
+
+        assert_eq!(actual, Ok(Some(ALLOW)));
+    }
+
+    #[test]
+    fn resolve_aggregate_single_deny() {
+        use Permission::*;
+
+        let perm = ConditionalPermission::Aggregate(vec![ConditionalPermission::Fixed(DENY)]);
+
+        let actual = perm.resolve(&TestEnv);
+
+        assert_eq!(actual, Ok(Some(DENY)));
+    }
+
+    #[test]
+    fn resolve_aggregate_single_silent() {
+        let perm = ConditionalPermission::Aggregate(vec![ConditionalPermission::Silent]);
+
+        let actual = perm.resolve(&TestEnv);
+
+        assert_eq!(actual, Ok(None));
     }
 }
