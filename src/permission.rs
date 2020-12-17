@@ -1,10 +1,6 @@
 
 use crate::condition::*;
 
-// pub enum Policy {
-//     Silent,
-// }
-
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Permission {
     ALLOW, DENY
