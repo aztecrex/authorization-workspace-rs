@@ -9,6 +9,7 @@ pub enum Permission {
 pub enum ConditionalPermission<CExp> {
     Silent,
     Atomic(Permission, CExp),
+    Fixed(Permission),
 }
 
 impl<CExp> ConditionalPermission<CExp> {
@@ -27,6 +28,7 @@ impl<CExp> ConditionalPermission<CExp> {
                     Ok(None)
                 }
             }
+            Fixed(perm) => Ok(Some(*perm)),
         }
     }
 }
@@ -114,5 +116,27 @@ mod tests {
             actual.unwrap_err(),
             TestEnv.test_condition(&TestExpression::_Error).unwrap_err()
         );
+    }
+
+    #[test]
+    fn resolve_fixed_allow() {
+        use Permission::*;
+
+        let perm = ConditionalPermission::<TestExpression>::Fixed(ALLOW);
+
+        let actual = perm.resolve(&TestEnv);
+
+        assert_eq!(actual, Ok(Some(ALLOW)));
+    }
+
+    #[test]
+    fn resolve_fixed_deny() {
+        use Permission::*;
+
+        let perm = ConditionalPermission::<TestExpression>::Fixed(DENY);
+
+        let actual = perm.resolve(&TestEnv);
+
+        assert_eq!(actual, Ok(Some(DENY)));
     }
 }
