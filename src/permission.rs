@@ -33,20 +33,6 @@ impl <CExp> ConditionalPermission<CExp> {
                 }
             }
     }
-    // pub fn resolve(&self) -> Option<Permission> {
-    //     use ConditionalPermission::*;
-    //     match self {
-    //         Silent => None,
-    //         Atomic(_perm, cexp) => {
-    //             let matched = cexp.evaluate().ok().unwrap();
-    //             if matched {
-    //                 Some(*_perm)
-    //             } else {
-    //                 None
-    //             }
-    //         },
-    //     }
-    // }
 }
 
 
@@ -79,13 +65,10 @@ mod tests {
     #[test]
     fn resolve_silent() {
 
-        // g
         let perm = ConditionalPermission::<TestExpression>::Silent;
 
-        // w
         let actual = perm.resolve(&TestEnv);
 
-        // t
         assert_eq!(actual, None);
     }
 
