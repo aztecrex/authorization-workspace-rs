@@ -12,19 +12,19 @@ pub enum ConditionalPermission<CExp> {
 }
 
 impl<CExp> ConditionalPermission<CExp> {
-    pub fn resolve<Env>(&self, environment: &Env) -> Option<Permission>
+    pub fn resolve<Env>(&self, environment: &Env) -> Result<Option<Permission>, Env::Err>
     where
         Env: Environment<CExp = CExp>,
     {
         use ConditionalPermission::*;
         match self {
-            Silent => None,
+            Silent => Ok(None),
             Atomic(perm, cexp) => {
-                let matched = environment.test_condition(cexp).ok().unwrap();
+                let matched = environment.test_condition(cexp)?;
                 if matched {
-                    Some(*perm)
+                    Ok(Some(*perm))
                 } else {
-                    None
+                    Ok(None)
                 }
             }
         }
@@ -64,7 +64,7 @@ mod tests {
 
         let actual = perm.resolve(&TestEnv);
 
-        assert_eq!(actual, None);
+        assert_eq!(actual, Ok(None));
     }
 
     #[test]
@@ -73,7 +73,7 @@ mod tests {
 
         let actual = perm.resolve(&TestEnv);
 
-        assert_eq!(actual, Some(Permission::ALLOW));
+        assert_eq!(actual, Ok(Some(Permission::ALLOW)));
     }
 
     #[test]
@@ -82,7 +82,7 @@ mod tests {
 
         let actual = perm.resolve(&TestEnv);
 
-        assert_eq!(actual, Some(Permission::DENY));
+        assert_eq!(actual, Ok(Some(Permission::DENY)));
     }
 
     #[test]
@@ -91,7 +91,7 @@ mod tests {
 
         let actual = perm.resolve(&TestEnv);
 
-        assert_eq!(actual, None);
+        assert_eq!(actual, Ok(None));
     }
 
     #[test]
@@ -100,6 +100,19 @@ mod tests {
 
         let actual = perm.resolve(&TestEnv);
 
-        assert_eq!(actual, None);
+        assert_eq!(actual, Ok(None));
+    }
+
+    #[test]
+    fn resolve_atomic_error() {
+        let perm = ConditionalPermission::Atomic(Permission::ALLOW, TestExpression::_Error);
+
+        let actual = perm.resolve(&TestEnv);
+
+        assert!(actual.is_err());
+        assert_eq!(
+            actual.unwrap_err(),
+            TestEnv.test_condition(&TestExpression::_Error).unwrap_err()
+        );
     }
 }
