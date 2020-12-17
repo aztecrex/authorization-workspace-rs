@@ -46,6 +46,7 @@ mod tests {
 
     use super::*;
 
+    #[derive(Clone, Debug, PartialEq, Eq)]
     enum TestExpression {
         Match,
         Miss,
@@ -67,6 +68,8 @@ mod tests {
             }
         }
     }
+
+    use Permission::*;
 
     #[test]
     fn resolve_silent() {
@@ -128,8 +131,6 @@ mod tests {
 
     #[test]
     fn resolve_fixed_allow() {
-        use Permission::*;
-
         let perm = ConditionalPermission::<TestExpression>::Fixed(ALLOW);
 
         let actual = perm.resolve(&TestEnv);
@@ -139,8 +140,6 @@ mod tests {
 
     #[test]
     fn resolve_fixed_deny() {
-        use Permission::*;
-
         let perm = ConditionalPermission::<TestExpression>::Fixed(DENY);
 
         let actual = perm.resolve(&TestEnv);
@@ -148,43 +147,34 @@ mod tests {
         assert_eq!(actual, Ok(Some(DENY)));
     }
 
-    #[test]
-    fn resolve_aggregate_empty() {
-        let perm = ConditionalPermission::Aggregate(vec![]);
+    fn check_aggregate(
+        config: Vec<ConditionalPermission<TestExpression>>,
+        expect: Result<Option<Permission>, ()>,
+    ) {
+        let perm = ConditionalPermission::Aggregate(config);
 
         let actual = perm.resolve(&TestEnv);
 
-        assert_eq!(actual, Ok(None));
+        assert_eq!(actual, expect);
+    }
+
+    #[test]
+    fn resolve_aggregate_empty() {
+        check_aggregate(vec![], Ok(None));
     }
 
     #[test]
     fn resolve_aggregate_single_allow() {
-        use Permission::*;
-
-        let perm = ConditionalPermission::Aggregate(vec![ConditionalPermission::Fixed(ALLOW)]);
-
-        let actual = perm.resolve(&TestEnv);
-
-        assert_eq!(actual, Ok(Some(ALLOW)));
+        check_aggregate(vec![ConditionalPermission::Fixed(ALLOW)], Ok(Some(ALLOW)));
     }
 
     #[test]
     fn resolve_aggregate_single_deny() {
-        use Permission::*;
-
-        let perm = ConditionalPermission::Aggregate(vec![ConditionalPermission::Fixed(DENY)]);
-
-        let actual = perm.resolve(&TestEnv);
-
-        assert_eq!(actual, Ok(Some(DENY)));
+        check_aggregate(vec![ConditionalPermission::Fixed(DENY)], Ok(Some(DENY)));
     }
 
     #[test]
     fn resolve_aggregate_single_silent() {
-        let perm = ConditionalPermission::Aggregate(vec![ConditionalPermission::Silent]);
-
-        let actual = perm.resolve(&TestEnv);
-
-        assert_eq!(actual, Ok(None));
+        check_aggregate(vec![ConditionalPermission::Silent], Ok(None));
     }
 }
