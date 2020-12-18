@@ -31,11 +31,19 @@ impl<CExp> ConditionalPermission<CExp> {
             }
             Fixed(perm) => Ok(Some(*perm)),
             Aggregate(perms) => {
-                if perms.is_empty() {
-                    Ok(None)
-                } else {
-                    perms.get(0).unwrap().resolve(environment)
-                }
+                use Permission::*;
+                let resolved: Result<Vec<Option<Permission>>, Env::Err> =
+                    perms.iter().map(|p| p.resolve(environment)).collect();
+                let resolved = resolved?;
+                let resolved = resolved.iter().fold(None, |a: Option<Permission>, v| {
+                    match (a, v) {
+                        (None, x) => *x,
+                        // (x, None) => x,
+                        (Some(ALLOW), Some(ALLOW)) => Some(ALLOW),
+                        _ => Some(DENY),
+                    }
+                });
+                Ok(resolved)
             }
         }
     }
@@ -176,5 +184,45 @@ mod tests {
     #[test]
     fn resolve_aggregate_single_silent() {
         check_aggregate(vec![ConditionalPermission::Silent], Ok(None));
+    }
+
+    #[test]
+    fn resolve_aggregate_all_allow() {
+        check_aggregate(
+            vec![
+                ConditionalPermission::Fixed(ALLOW),
+                ConditionalPermission::Fixed(ALLOW),
+                ConditionalPermission::Fixed(ALLOW),
+            ],
+            Ok(Some(ALLOW)),
+        );
+    }
+
+    #[test]
+    fn resolve_aggregate_deny_is_king() {
+        check_aggregate(
+            vec![
+                ConditionalPermission::Fixed(DENY),
+                ConditionalPermission::Fixed(ALLOW),
+                ConditionalPermission::Fixed(ALLOW),
+            ],
+            Ok(Some(DENY)),
+        );
+        check_aggregate(
+            vec![
+                ConditionalPermission::Fixed(ALLOW),
+                ConditionalPermission::Fixed(DENY),
+                ConditionalPermission::Fixed(ALLOW),
+            ],
+            Ok(Some(DENY)),
+        );
+        check_aggregate(
+            vec![
+                ConditionalPermission::Fixed(ALLOW),
+                ConditionalPermission::Fixed(ALLOW),
+                ConditionalPermission::Fixed(DENY),
+            ],
+            Ok(Some(DENY)),
+        );
     }
 }
