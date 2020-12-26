@@ -78,6 +78,15 @@ mod tests {
         }
     }
 
+    impl Environment for u32 {
+        type Err = ();
+        type CExp = u32;
+
+        fn test_condition(&self, exp: &Self::CExp) -> Result<bool, Self::Err> {
+            Ok(self == exp)
+        }
+    }
+
     use Permission::*;
 
     #[test]
@@ -280,5 +289,30 @@ mod tests {
             ],
             Ok(Some(DENY)),
         );
+    }
+
+    #[test]
+    fn test_nested_condition() {
+        use ConditionalPermission::*;
+
+        let perm = Aggregate(vec![
+            Atomic(DENY, 1u32),
+            Atomic(DENY, 2u32),
+            Aggregate(vec![
+                Atomic(DENY, 3u32),
+                Atomic(ALLOW, 4u32)
+            ]),
+        ]);
+
+
+        let actual = perm.resolve(&3u32);
+        assert_eq!(actual, Ok(Some(DENY)));
+
+        let actual = perm.resolve(&4u32);
+        assert_eq!(actual, Ok(Some(ALLOW)));
+
+        let actual = perm.resolve(&100u32);
+        assert_eq!(actual, Ok(None));
+
     }
 }
