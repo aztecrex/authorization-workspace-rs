@@ -91,7 +91,7 @@ mod tests {
 
     #[test]
     fn resolve_silent() {
-        let perm = ConditionalPermission::<TestExpression>::Silent;
+        let perm = ConditionalPermission::Silent;
 
         let actual = perm.resolve(&TestEnv);
 
