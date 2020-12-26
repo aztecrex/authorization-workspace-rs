@@ -59,7 +59,7 @@ mod tests {
     enum TestExpression {
         Match,
         Miss,
-        _Error,
+        Error,
     }
 
     struct TestEnv;
@@ -73,7 +73,7 @@ mod tests {
             match exp {
                 Match => Ok(true),
                 Miss => Ok(false),
-                _Error => Err(()),
+                Error => Err(()),
             }
         }
     }
@@ -136,14 +136,14 @@ mod tests {
 
     #[test]
     fn resolve_atomic_error() {
-        let perm = ConditionalPermission::Atomic(Permission::ALLOW, TestExpression::_Error);
+        let perm = ConditionalPermission::Atomic(Permission::ALLOW, TestExpression::Error);
 
         let actual = perm.resolve(&TestEnv);
 
         assert!(actual.is_err());
         assert_eq!(
             actual.unwrap_err(),
-            TestEnv.test_condition(&TestExpression::_Error).unwrap_err()
+            TestEnv.test_condition(&TestExpression::Error).unwrap_err()
         );
     }
 
@@ -298,12 +298,8 @@ mod tests {
         let perm = Aggregate(vec![
             Atomic(DENY, 1u32),
             Atomic(DENY, 2u32),
-            Aggregate(vec![
-                Atomic(DENY, 3u32),
-                Atomic(ALLOW, 4u32)
-            ]),
+            Aggregate(vec![Atomic(DENY, 3u32), Atomic(ALLOW, 4u32)]),
         ]);
-
 
         let actual = perm.resolve(&3u32);
         assert_eq!(actual, Ok(Some(DENY)));
@@ -313,6 +309,5 @@ mod tests {
 
         let actual = perm.resolve(&100u32);
         assert_eq!(actual, Ok(None));
-
     }
 }
