@@ -1,11 +1,5 @@
 use crate::condition::*;
-// use crate::effect::*;
-
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
-pub enum Effect {
-    ALLOW,
-    DENY,
-}
+use crate::effect::*;
 
 pub enum ConditionalEffect<CExp> {
     Silent,
