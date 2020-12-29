@@ -1,20 +1,21 @@
 use crate::condition::*;
+// use crate::effect::*;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
-pub enum Permission {
+pub enum Effect {
     ALLOW,
     DENY,
 }
 
 pub enum ConditionalPermission<CExp> {
     Silent,
-    Atomic(Permission, CExp),
-    Fixed(Permission),
+    Atomic(Effect, CExp),
+    Fixed(Effect),
     Aggregate(Vec<ConditionalPermission<CExp>>),
 }
 
 impl<CExp> ConditionalPermission<CExp> {
-    pub fn resolve<Env>(&self, environment: &Env) -> Result<Option<Permission>, Env::Err>
+    pub fn resolve<Env>(&self, environment: &Env) -> Result<Option<Effect>, Env::Err>
     where
         Env: Environment<CExp = CExp>,
     {
@@ -31,19 +32,18 @@ impl<CExp> ConditionalPermission<CExp> {
             }
             Fixed(perm) => Ok(Some(*perm)),
             Aggregate(perms) => {
-                use Permission::*;
-                let resolved: Result<Vec<Option<Permission>>, Env::Err> =
+                use Effect::*;
+                let resolved: Result<Vec<Option<Effect>>, Env::Err> =
                     perms.iter().map(|p| p.resolve(environment)).collect();
                 let resolved = resolved?;
-                let resolved =
-                    resolved
-                        .iter()
-                        .fold(None, |a: Option<Permission>, v| match (a, v) {
-                            (None, x) => *x,
-                            (x, None) => x,
-                            (Some(ALLOW), Some(ALLOW)) => Some(ALLOW),
-                            _ => Some(DENY),
-                        });
+                let resolved = resolved
+                    .iter()
+                    .fold(None, |a: Option<Effect>, v| match (a, v) {
+                        (None, x) => *x,
+                        (x, None) => x,
+                        (Some(ALLOW), Some(ALLOW)) => Some(ALLOW),
+                        _ => Some(DENY),
+                    });
                 Ok(resolved)
             }
         }
@@ -53,7 +53,7 @@ impl<CExp> ConditionalPermission<CExp> {
 pub fn resolve_all<'a, CExp: 'a, Env>(
     perms: impl Iterator<Item = &'a ConditionalPermission<CExp>>,
     environment: &Env,
-) -> Result<Vec<Option<Permission>>, Env::Err>
+) -> Result<Vec<Option<Effect>>, Env::Err>
 where
     Env: Environment<CExp = CExp>,
 {
@@ -97,7 +97,7 @@ mod tests {
         }
     }
 
-    use Permission::*;
+    use Effect::*;
 
     #[test]
     fn resolve_silent() {
@@ -110,25 +110,25 @@ mod tests {
 
     #[test]
     fn resolve_atomic_allow_match() {
-        let perm = ConditionalPermission::Atomic(Permission::ALLOW, TestExpression::Match);
+        let perm = ConditionalPermission::Atomic(Effect::ALLOW, TestExpression::Match);
 
         let actual = perm.resolve(&TestEnv);
 
-        assert_eq!(actual, Ok(Some(Permission::ALLOW)));
+        assert_eq!(actual, Ok(Some(Effect::ALLOW)));
     }
 
     #[test]
     fn resolve_atomic_deny_match() {
-        let perm = ConditionalPermission::Atomic(Permission::DENY, TestExpression::Match);
+        let perm = ConditionalPermission::Atomic(Effect::DENY, TestExpression::Match);
 
         let actual = perm.resolve(&TestEnv);
 
-        assert_eq!(actual, Ok(Some(Permission::DENY)));
+        assert_eq!(actual, Ok(Some(Effect::DENY)));
     }
 
     #[test]
     fn resolve_atomic_allow_miss() {
-        let perm = ConditionalPermission::Atomic(Permission::ALLOW, TestExpression::Miss);
+        let perm = ConditionalPermission::Atomic(Effect::ALLOW, TestExpression::Miss);
 
         let actual = perm.resolve(&TestEnv);
 
@@ -137,7 +137,7 @@ mod tests {
 
     #[test]
     fn resolve_atomic_deny_miss() {
-        let perm = ConditionalPermission::Atomic(Permission::DENY, TestExpression::Miss);
+        let perm = ConditionalPermission::Atomic(Effect::DENY, TestExpression::Miss);
 
         let actual = perm.resolve(&TestEnv);
 
@@ -146,7 +146,7 @@ mod tests {
 
     #[test]
     fn resolve_atomic_error() {
-        let perm = ConditionalPermission::Atomic(Permission::ALLOW, TestExpression::Error);
+        let perm = ConditionalPermission::Atomic(Effect::ALLOW, TestExpression::Error);
 
         let actual = perm.resolve(&TestEnv);
 
@@ -177,7 +177,7 @@ mod tests {
 
     fn check_aggregate(
         config: Vec<ConditionalPermission<TestExpression>>,
-        expect: Result<Option<Permission>, ()>,
+        expect: Result<Option<Effect>, ()>,
     ) {
         let perm = ConditionalPermission::Aggregate(config);
 
