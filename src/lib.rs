@@ -1,6 +1,6 @@
 pub mod condition;
+pub mod conditional_effect;
 pub mod effect;
-pub mod permission;
 
 #[cfg(test)]
 mod tests {
