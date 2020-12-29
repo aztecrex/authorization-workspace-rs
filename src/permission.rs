@@ -50,6 +50,16 @@ impl<CExp> ConditionalPermission<CExp> {
     }
 }
 
+pub fn resolve_all<'a, CExp: 'a, Env>(
+    perms: impl Iterator<Item = &'a ConditionalPermission<CExp>>,
+    environment: &Env,
+) -> Result<Vec<Option<Permission>>, Env::Err>
+where
+    Env: Environment<CExp = CExp>,
+{
+    perms.map(|cexp| cexp.resolve(environment)).collect()
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -309,5 +319,71 @@ mod tests {
 
         let actual = perm.resolve(&100u32);
         assert_eq!(actual, Ok(None));
+    }
+
+    #[test]
+    fn test_resolve_all() {
+        use ConditionalPermission::*;
+
+        let perms = vec![
+            Atomic(ALLOW, 1u32),
+            Atomic(ALLOW, 2u32),
+            Atomic(DENY, 1u32),
+            Atomic(DENY, 2u32),
+            Fixed(ALLOW),
+            Fixed(DENY),
+            Silent,
+            Aggregate(vec![Atomic(ALLOW, 1u32), Atomic(DENY, 2u32)]),
+        ];
+
+        let actual = resolve_all(perms.iter(), &1);
+        assert_eq!(
+            actual,
+            Ok(vec![
+                Some(ALLOW),
+                None,
+                Some(DENY),
+                None,
+                Some(ALLOW),
+                Some(DENY),
+                None,
+                Some(ALLOW),
+            ])
+        );
+
+        let actual = resolve_all(perms.iter(), &2);
+        assert_eq!(
+            actual,
+            Ok(vec![
+                None,
+                Some(ALLOW),
+                None,
+                Some(DENY),
+                Some(ALLOW),
+                Some(DENY),
+                None,
+                Some(DENY),
+            ])
+        );
+    }
+
+    #[test]
+    fn test_resolve_all_err() {
+        use ConditionalPermission::*;
+
+        let perms = vec![
+            Fixed(ALLOW),
+            Fixed(DENY),
+            Silent,
+            Aggregate(vec![
+                Fixed(ALLOW),
+                Atomic(ALLOW, TestExpression::Error),
+                Fixed(DENY),
+            ]),
+        ];
+
+        let actual = resolve_all(perms.iter(), &TestEnv);
+
+        assert_eq!(actual, Err(()));
     }
 }
