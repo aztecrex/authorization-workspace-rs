@@ -38,16 +38,30 @@ where
         }
     }
 
+    fn applies(&self, resource: R, action: A) -> bool {
+        use Policy::*;
+
+        let (rmatch, amatch) = match self {
+            Conditional(rmatch, amatch, _, _) => (rmatch, amatch),
+            Unconditional(rmatch, amatch, _) => (rmatch, amatch),
+        };
+        rmatch.test(&resource) && amatch.test(&action)
+    }
+
     pub fn apply(self, resource: R, action: A) -> ConditionalEffect<CExp> {
         use Policy::*;
         use ConditionalEffect::*;
 
+        if self.applies(resource, action) {
         match self {
-            Conditional(rmatch, amatch, eff, cond) => {
+            Conditional(_, _, eff, cond) => {
                 Atomic(eff, cond)
             },
             _ => unimplemented!()
         }
+    } else {
+        Silent
+    }
     }
 
 }
@@ -99,18 +113,18 @@ mod tests {
     fn test_unconditional_unmatched_resource() {
         let policy = Policy::<_,_, ()>::Unconditional("miss", "a", DENY);
 
-        let actual = policy.apply_old(Resource("r"), Action("a"));
+        let actual = policy.apply(Resource("r"), Action("a"));
 
-        assert_eq!(actual, None);
+        assert_eq!(actual, ConditionalEffect::Silent);
     }
 
     #[test]
     fn test_unconditional_unmatched_action() {
         let policy = Policy::<_, _, ()>::Unconditional("r", "miss", DENY);
 
-        let actual = policy.apply_old(Resource("r"), Action("a"));
+        let actual = policy.apply(Resource("r"), Action("a"));
 
-        assert_eq!(actual, None);
+        assert_eq!(actual, ConditionalEffect::Silent);
     }
 
     #[test]
