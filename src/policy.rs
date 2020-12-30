@@ -1,4 +1,5 @@
 use crate::effect::*;
+use crate::conditional_effect::*;
 
 pub trait ResourceMatch {
     type Resource;
@@ -10,16 +11,17 @@ pub trait ActionMatch {
     fn test(&self, action: &Self::Action) -> bool;
 }
 
-pub enum Policy<RMatch, AMatch> {
+pub enum Policy<RMatch, AMatch, CExp> {
     Unconditional(RMatch, AMatch, Effect),
+    Conditional(RMatch, AMatch, Effect, CExp),
 }
 
-impl<R, RMatch, A, AMatch> Policy<RMatch, AMatch>
+impl<R, RMatch, A, AMatch, CExp> Policy<RMatch, AMatch, CExp>
 where
     RMatch: ResourceMatch<Resource = R>,
     AMatch: ActionMatch<Action = A>,
 {
-    pub fn apply(&self, resource: R, action: A) -> Option<Effect> {
+    pub fn apply_old(&self, resource: R, action: A) -> Option<Effect> {
         use Policy::*;
 
         match self {
@@ -29,9 +31,25 @@ where
                 } else {
                     None
                 }
+            },
+            Conditional(rmatch, amatch, eff, cond) => {
+                unimplemented!();
             }
         }
     }
+
+    pub fn apply(self, resource: R, action: A) -> ConditionalEffect<CExp> {
+        use Policy::*;
+        use ConditionalEffect::*;
+
+        match self {
+            Conditional(rmatch, amatch, eff, cond) => {
+                Atomic(eff, cond)
+            },
+            _ => unimplemented!()
+        }
+    }
+
 }
 
 #[cfg(test)]
@@ -61,39 +79,51 @@ mod tests {
 
     #[test]
     fn test_unconditional_match_allow() {
-        let policy = Policy::Unconditional("r", "a", ALLOW);
+        let policy = Policy::<_, _, ()>::Unconditional("r", "a", ALLOW);
 
-        let actual = policy.apply(Resource("r"), Action("a"));
+        let actual = policy.apply_old(Resource("r"), Action("a"));
 
         assert_eq!(actual, Some(ALLOW));
     }
 
     #[test]
     fn test_unconditional_match_deny() {
-        let policy = Policy::Unconditional("r", "a", DENY);
+        let policy = Policy::<_, _, ()>::Unconditional("r", "a", DENY);
 
-        let actual = policy.apply(Resource("r"), Action("a"));
+        let actual = policy.apply_old(Resource("r"), Action("a"));
 
         assert_eq!(actual, Some(DENY));
     }
 
     #[test]
     fn test_unconditional_unmatched_resource() {
-        let policy = Policy::Unconditional("miss", "a", DENY);
+        let policy = Policy::<_,_, ()>::Unconditional("miss", "a", DENY);
 
-        let actual = policy.apply(Resource("r"), Action("a"));
+        let actual = policy.apply_old(Resource("r"), Action("a"));
 
         assert_eq!(actual, None);
     }
 
     #[test]
     fn test_unconditional_unmatched_action() {
-        let policy = Policy::Unconditional("r", "miss", DENY);
+        let policy = Policy::<_, _, ()>::Unconditional("r", "miss", DENY);
 
-        let actual = policy.apply(Resource("r"), Action("a"));
+        let actual = policy.apply_old(Resource("r"), Action("a"));
 
         assert_eq!(actual, None);
     }
+
+    #[test]
+    fn test_conditional_matched_allow() {
+
+        let policy = Policy::Conditional("r", "a", ALLOW, ());
+
+        let actual = policy.apply(Resource("r"), Action("a"));
+
+        assert_eq!(actual, ConditionalEffect::Atomic(ALLOW, ()));
+
+    }
+
 }
 
 // #[derive(PartialEq, Eq)]

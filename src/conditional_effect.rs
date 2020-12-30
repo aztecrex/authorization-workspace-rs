@@ -1,6 +1,7 @@
 use crate::condition::*;
 use crate::effect::*;
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum ConditionalEffect<CExp> {
     Silent,
     Atomic(Effect, CExp),
