@@ -11,9 +11,11 @@ pub trait ActionMatch {
     fn test(&self, action: &Self::Action) -> bool;
 }
 
+#[derive(Clone, Debug)]
 pub enum Policy<RMatch, AMatch, CExp> {
     Unconditional(RMatch, AMatch, Effect),
     Conditional(RMatch, AMatch, Effect, CExp),
+    Aggregate(Vec<Policy<RMatch, AMatch, CExp>>),
 }
 
 impl<R, RMatch, A, AMatch, CExp> Policy<RMatch, AMatch, CExp>
@@ -21,27 +23,30 @@ where
     RMatch: ResourceMatch<Resource = R>,
     AMatch: ActionMatch<Action = A>,
 {
-    fn applies(&self, resource: R, action: A) -> bool {
+    fn applies(&self, resource: &R, action: &A) -> bool {
         use Policy::*;
 
         let (rmatch, amatch) = match self {
             Conditional(rmatch, amatch, _, _) => (rmatch, amatch),
             Unconditional(rmatch, amatch, _) => (rmatch, amatch),
+            Aggregate(_) => return true,
         };
         rmatch.test(&resource) && amatch.test(&action)
     }
 
-    pub fn apply(self, resource: R, action: A) -> ConditionalEffect<CExp> {
-        use ConditionalEffect::*;
+    pub fn apply(self, resource: &R, action: &A) -> ConditionalEffect<CExp> {
         use Policy::*;
 
         if self.applies(resource, action) {
             match self {
-                Conditional(_, _, eff, cond) => Atomic(eff, cond),
-                Unconditional(_, _, eff) => Fixed(eff),
+                Conditional(_, _, eff, cond) => ConditionalEffect::Atomic(eff, cond),
+                Unconditional(_, _, eff) => ConditionalEffect::Fixed(eff),
+                Aggregate(ts) => ConditionalEffect::Aggregate(
+                    ts.into_iter().map(|t| t.apply(resource, action)).collect(),
+                ),
             }
         } else {
-            Silent
+            ConditionalEffect::Silent
         }
     }
 }
@@ -75,7 +80,7 @@ mod tests {
     fn test_unconditional_match_allow() {
         let policy = Policy::<_, _, ()>::Unconditional("r", "a", ALLOW);
 
-        let actual = policy.apply(Resource("r"), Action("a"));
+        let actual = policy.apply(&Resource("r"), &Action("a"));
 
         assert_eq!(actual, ConditionalEffect::Fixed(ALLOW));
     }
@@ -84,7 +89,7 @@ mod tests {
     fn test_unconditional_match_deny() {
         let policy = Policy::<_, _, ()>::Unconditional("r", "a", DENY);
 
-        let actual = policy.apply(Resource("r"), Action("a"));
+        let actual = policy.apply(&Resource("r"), &Action("a"));
 
         assert_eq!(actual, ConditionalEffect::Fixed(DENY));
     }
@@ -93,7 +98,7 @@ mod tests {
     fn test_unconditional_unmatched_resource() {
         let policy = Policy::<_, _, ()>::Unconditional("miss", "a", DENY);
 
-        let actual = policy.apply(Resource("r"), Action("a"));
+        let actual = policy.apply(&Resource("r"), &Action("a"));
 
         assert_eq!(actual, ConditionalEffect::Silent);
     }
@@ -102,7 +107,7 @@ mod tests {
     fn test_unconditional_unmatched_action() {
         let policy = Policy::<_, _, ()>::Unconditional("r", "miss", DENY);
 
-        let actual = policy.apply(Resource("r"), Action("a"));
+        let actual = policy.apply(&Resource("r"), &Action("a"));
 
         assert_eq!(actual, ConditionalEffect::Silent);
     }
@@ -111,141 +116,44 @@ mod tests {
     fn test_conditional_matched_allow() {
         let policy = Policy::Conditional("r", "a", ALLOW, ());
 
-        let actual = policy.apply(Resource("r"), Action("a"));
+        let actual = policy.apply(&Resource("r"), &Action("a"));
 
         assert_eq!(actual, ConditionalEffect::Atomic(ALLOW, ()));
     }
+
+    #[test]
+    fn test_aggregate() {
+        let terms = vec![
+            Policy::Conditional("r1", "a1", ALLOW, ()),
+            Policy::Conditional("r2", "a1", ALLOW, ()),
+            Policy::Conditional("r1", "a2", ALLOW, ()),
+            Policy::Conditional("r2", "a2", ALLOW, ()),
+            Policy::Unconditional("r1", "a1", ALLOW),
+            Policy::Unconditional("r2", "a1", ALLOW),
+            Policy::Unconditional("r1", "a2", ALLOW),
+            Policy::Unconditional("r2", "a2", ALLOW),
+            Policy::Aggregate(vec![
+                Policy::Conditional("r1", "a1", ALLOW, ()),
+                Policy::Conditional("r2", "a1", ALLOW, ()),
+                Policy::Conditional("r1", "a2", ALLOW, ()),
+                Policy::Conditional("r2", "a2", ALLOW, ()),
+                Policy::Unconditional("r1", "a1", ALLOW),
+                Policy::Unconditional("r2", "a1", ALLOW),
+                Policy::Unconditional("r1", "a2", ALLOW),
+                Policy::Unconditional("r2", "a2", ALLOW),
+            ]),
+        ];
+        let policy = Policy::Aggregate(terms.clone());
+
+        let actual = policy.apply(&Resource("r1"), &Action("a1"));
+        assert_eq!(
+            actual,
+            ConditionalEffect::Aggregate(
+                terms
+                    .iter()
+                    .map(|p| p.clone().apply(&Resource("r1"), &Action("a1")))
+                    .collect()
+            )
+        );
+    }
 }
-
-// #[derive(PartialEq, Eq)]
-// struct Authority(String);
-
-// #[derive(PartialEq, Eq)]
-// struct ResourcePath(Vec<String>);
-
-// #[derive(PartialEq, Eq)]
-// struct Resource(Authority, ResourcePath);
-
-// #[derive(PartialEq, Eq)]
-// struct ActionName(String);
-
-// #[derive(PartialEq, Eq)]
-// struct Action(Authority, ActionName);
-
-// trait ResourceMatch {
-
-//     fn all() -> Self;
-//     fn none() -> Self;
-
-//     fn test(&self, resource: &ResourcePath) -> bool;
-// }
-// trait ActionMatch {
-
-//     fn all() -> Self;
-//     fn none() -> Self;
-
-//     fn test(&self, action: &ActionName) -> bool;
-// }
-
-// pub enum ConditionalPermission<Cond: Sized>{
-
-//     Atomic(Effect, Cond),
-//     Aggregate(Vec<ConditionalPermission<Cond>>),
-//     Disjoint(Vec<ConditionalPermission<Cond>>),
-//     Silent,
-// }
-
-//  impl <Cond> ConditionalPermission<Cond> {
-
-//     pub  fn apply<Env: Environment<Cond>> (&self, environment: &Env) -> Result<Option<Effect>, Env::Error> {
-//         match self {
-//             ConditionalPermission::Atomic(effect, cond) => {
-//                 environment.test(cond)
-//                     .map(|r| if r  {Some(*effect)} else {None})
-//             },
-//             ConditionalPermission::Aggregate(constituents) => {
-
-//                 // note: if any evaluation fails, this result will reflect
-//                 // the failed item application
-//                 let results : Result<Vec<Option<Effect>>, Env::Error> =
-//                     constituents.iter()
-//                     .map(|p| p.apply(environment))
-//                     .filter(|r| {
-//                         r.and_then(|e| e.is_some())
-
-//                         // if r.is_ok() {
-
-//                         //     unimplemented!();
-//                         // } else {
-//                         //     true
-//                         // }
-//                     })
-//                     .collect();
-
-//                 unimplemented!();
-//             },
-//             ConditionalPermission::Disjoint(constituents) => {
-//                 unimplemented!();
-//             },
-//             ConditionalPermission::Silent => Ok(None),
-//         }
-//     }
-
-// }
-
-// pub enum Policy<Cond: Sized, RMatch: Sized, AMatch: Sized>
-// {
-//     Unconditional(Effect, Authority, AMatch, RMatch),
-//     Conditional(Effect, Authority, AMatch, RMatch, Cond),
-//     Aggregate(Vec<Policy<Cond, RMatch, AMatch>>),
-//     Disjoint(Vec<Policy<Cond, RMatch, AMatch>>),
-//     Silent,
-// }
-
-// impl <Cond: Sized, RMatch: Sized, AMatch: Sized> Policy<Cond, RMatch, AMatch>
-//     where
-//     Cond: Condition,
-//     RMatch: ResourceMatch,
-//     AMatch: ActionMatch,
-//  {
-
-//     pub fn evaluate(&self, authority: Authority, action: ActionName, resource: ResourcePath) -> ConditionalPermission<Cond> {
-//        match self {
-
-//            Policy::Unconditional(effect, self_authority, amatch, rmatch) => {
-//             if Self::applies(authority, action, resource, *self_authority, &amatch, &rmatch) {
-//                 ConditionalPermission::Atomic(*effect, Cond::always())
-//             } else {
-//                 ConditionalPermission::Silent
-//             }
-//            },
-//            Policy::Conditional(effect, self_authority, amatch, rmatch, cond) => {
-//             if Self::applies(authority, action, resource, *self_authority, &amatch, &rmatch) {
-//                 ConditionalPermission::Atomic(*effect, *cond)
-//             } else {
-//                 ConditionalPermission::Silent
-//             }
-//            },
-//            Policy::Aggregate(constituents) => {
-//                let perms = constituents.iter()
-//                 .map(|&p| p.evaluate(authority, action, resource))
-//                 .collect();
-//                ConditionalPermission::Aggregate(perms)
-//            },
-//            Policy::Disjoint(constituents) => {
-//             let perms = constituents.iter()
-//                 .map(|&p| p.evaluate(authority, action, resource))
-//                 .collect();
-//            ConditionalPermission::Disjoint(perms)
-//        },
-//         Policy::Silent => ConditionalPermission::Silent,
-//        }
-//     }
-
-//     fn applies(authority: Authority, action: ActionName, resource: ResourcePath, self_authority: Authority, amatch: &AMatch, rmatch: &RMatch) -> bool {
-//         authority == self_authority &&
-//         amatch.test(&action) &&
-//         rmatch.test(&resource)
-//     }
-
-// }
