@@ -26,12 +26,11 @@ where
     fn applies(&self, resource: &R, action: &A) -> bool {
         use Policy::*;
 
-        let (rmatch, amatch) = match self {
-            Conditional(rmatch, amatch, _, _) => (rmatch, amatch),
-            Unconditional(rmatch, amatch, _) => (rmatch, amatch),
-            Aggregate(_) => return true,
-        };
-        rmatch.test(&resource) && amatch.test(&action)
+        match self {
+            Conditional(rmatch, amatch, _, _) => rmatch.test(&resource) && amatch.test(&action),
+            Unconditional(rmatch, amatch, _) => rmatch.test(&resource) && amatch.test(&action),
+            Aggregate(_) => true,
+        }
     }
 
     pub fn apply(self, resource: &R, action: &A) -> ConditionalEffect<CExp> {
