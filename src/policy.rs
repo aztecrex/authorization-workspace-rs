@@ -1,5 +1,5 @@
-use crate::conditional_effect::*;
-use crate::effect::*;
+use super::conditional_effect::*;
+use super::effect::*;
 
 pub trait ResourceMatch {
     type Resource;

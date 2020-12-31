@@ -1,5 +1,5 @@
-use crate::condition::*;
-use crate::effect::*;
+use super::condition::*;
+use super::effect::*;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ConditionalEffect<CExp> {
