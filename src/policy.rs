@@ -62,9 +62,9 @@ mod tests {
     #[derive(Clone, Copy)]
     pub struct Matcher(&'static str);
 
-    static r: Matcher = Matcher("r");
-    static a: Matcher = Matcher("a");
-    static miss: Matcher = Matcher("miss");
+    static MATCH_R: Matcher = Matcher("r");
+    static MATCH_A: Matcher = Matcher("a");
+    static MATCH_MISS: Matcher = Matcher("miss");
 
     impl ResourceMatch for Matcher {
         type Resource = Resource;
@@ -86,7 +86,7 @@ mod tests {
 
     #[test]
     fn test_unconditional_match_allow() {
-        let policy = Policy::<_, _, ()>::Unconditional(r, a, ALLOW);
+        let policy = Policy::<_, _, ()>::Unconditional(MATCH_R, MATCH_A, ALLOW);
 
         let actual = policy.apply(&Resource("r"), &Action("a"));
 
@@ -95,7 +95,7 @@ mod tests {
 
     #[test]
     fn test_unconditional_match_deny() {
-        let policy = Policy::<_, _, ()>::Unconditional(r, a, DENY);
+        let policy = Policy::<_, _, ()>::Unconditional(MATCH_R, MATCH_A, DENY);
 
         let actual = policy.apply(&Resource("r"), &Action("a"));
 
@@ -104,7 +104,7 @@ mod tests {
 
     #[test]
     fn test_unconditional_unmatched_resource() {
-        let policy = Policy::<_, _, ()>::Unconditional(miss, a, DENY);
+        let policy = Policy::<_, _, ()>::Unconditional(MATCH_MISS, MATCH_A, DENY);
 
         let actual = policy.apply(&Resource("r"), &Action("a"));
 
@@ -113,7 +113,7 @@ mod tests {
 
     #[test]
     fn test_unconditional_unmatched_action() {
-        let policy = Policy::<_, _, ()>::Unconditional(r, miss, DENY);
+        let policy = Policy::<_, _, ()>::Unconditional(MATCH_R, MATCH_MISS, DENY);
 
         let actual = policy.apply(&Resource("r"), &Action("a"));
 
@@ -122,7 +122,7 @@ mod tests {
 
     #[test]
     fn test_conditional_matched_allow() {
-        let policy = Policy::Conditional(r, a, ALLOW, ());
+        let policy = Policy::Conditional(MATCH_R, MATCH_A, ALLOW, ());
 
         let actual = policy.apply(&Resource("r"), &Action("a"));
 
@@ -131,28 +131,28 @@ mod tests {
 
     #[test]
     fn test_aggregate() {
-        let r1 = Matcher("r1");
-        let r2 = Matcher("r2");
-        let a1 = Matcher("a1");
-        let a2 = Matcher("a2");
+        let match_r1 = Matcher("r1");
+        let match_r2 = Matcher("r2");
+        let match_a1 = Matcher("a1");
+        let match_a2 = Matcher("a2");
         let terms = vec![
-            Policy::Conditional(r1, a1, ALLOW, ()),
-            Policy::Conditional(r2, a1, ALLOW, ()),
-            Policy::Conditional(r1, a2, ALLOW, ()),
-            Policy::Conditional(r2, a2, ALLOW, ()),
-            Policy::Unconditional(r1, a1, ALLOW),
-            Policy::Unconditional(r2, a1, ALLOW),
-            Policy::Unconditional(r1, a2, ALLOW),
-            Policy::Unconditional(r2, a2, ALLOW),
+            Policy::Conditional(match_r1, match_a1, ALLOW, ()),
+            Policy::Conditional(match_r2, match_a1, ALLOW, ()),
+            Policy::Conditional(match_r1, match_a2, ALLOW, ()),
+            Policy::Conditional(match_r2, match_a2, ALLOW, ()),
+            Policy::Unconditional(match_r1, match_a1, ALLOW),
+            Policy::Unconditional(match_r2, match_a1, ALLOW),
+            Policy::Unconditional(match_r1, match_a2, ALLOW),
+            Policy::Unconditional(match_r2, match_a2, ALLOW),
             Policy::Aggregate(vec![
-                Policy::Conditional(r1, a1, ALLOW, ()),
-                Policy::Conditional(r2, a1, ALLOW, ()),
-                Policy::Conditional(r1, a2, ALLOW, ()),
-                Policy::Conditional(r2, a2, ALLOW, ()),
-                Policy::Unconditional(r1, a1, ALLOW),
-                Policy::Unconditional(r2, a1, ALLOW),
-                Policy::Unconditional(r1, a2, ALLOW),
-                Policy::Unconditional(r2, a2, ALLOW),
+                Policy::Conditional(match_r1, match_a1, ALLOW, ()),
+                Policy::Conditional(match_r2, match_a1, ALLOW, ()),
+                Policy::Conditional(match_r1, match_a2, ALLOW, ()),
+                Policy::Conditional(match_r2, match_a2, ALLOW, ()),
+                Policy::Unconditional(match_r1, match_a1, ALLOW),
+                Policy::Unconditional(match_r2, match_a1, ALLOW),
+                Policy::Unconditional(match_r1, match_a2, ALLOW),
+                Policy::Unconditional(match_r2, match_a2, ALLOW),
             ]),
         ];
         let policy = Policy::Aggregate(terms.clone());
