@@ -7,7 +7,7 @@ pub trait Template<T> {
 }
 
 pub enum PolicyTemplate<RMatchTpl, AMatch, CExp> {
-    // Unconditional(RMatchTpl, AMatch, Effect),
+    Unconditional(RMatchTpl, AMatch, Effect),
     // Conditional(RMatchTpl, AMatch, Effect, CExp),
     Aggregate(Vec<Policy<RMatchTpl, AMatch, CExp>>),
 }
@@ -19,7 +19,11 @@ where
 {
     type Param = Param;
     fn apply(self, _p: Self::Param) -> Policy<RMatch, AMatch, CExp> {
-        Policy::Aggregate(vec![])
+        use PolicyTemplate::*;
+        match self {
+            Aggregate(_) => Policy::Aggregate(vec![]),
+            Unconditional(rmtpl, am, eff) => Policy::Unconditional(rmtpl.apply(_p), am, eff),
+        }
     }
 }
 
@@ -40,11 +44,12 @@ mod tests {
     #[derive(Debug, PartialEq, Eq)]
     struct Cond(&'static str);
 
+    #[derive(Clone, Copy)]
     struct RMatchTpl;
     impl Template<RMatch> for RMatchTpl {
         type Param = &'static str;
-        fn apply(self, _p: Self::Param) -> RMatch {
-            unimplemented!();
+        fn apply(self, p: Self::Param) -> RMatch {
+            RMatch(p)
         }
     }
 
@@ -52,8 +57,42 @@ mod tests {
     fn test_empty_aggregate() {
         let template = PolicyTemplate::<RMatchTpl, AMatch, Cond>::Aggregate(vec![]);
 
-        let actual = template.apply("hello");
+        let actual = template.apply("not important");
 
         assert_eq!(actual, Policy::Aggregate(vec![]));
+    }
+
+    #[test]
+    fn test_unconditional_allow() {
+        let rmatch_tpl = RMatchTpl;
+        let template = PolicyTemplate::<RMatchTpl, AMatch, Cond>::Unconditional(
+            rmatch_tpl,
+            AMatch("a"),
+            Effect::ALLOW,
+        );
+
+        let actual = template.apply("xyz");
+
+        assert_eq!(
+            actual,
+            Policy::Unconditional(rmatch_tpl.apply("xyz"), AMatch("a"), Effect::ALLOW)
+        );
+    }
+
+    #[test]
+    fn test_unconditional_deny() {
+        let rmatch_tpl = RMatchTpl;
+        let template = PolicyTemplate::<RMatchTpl, AMatch, Cond>::Unconditional(
+            rmatch_tpl,
+            AMatch("a"),
+            Effect::DENY,
+        );
+
+        let actual = template.apply("xyz");
+
+        assert_eq!(
+            actual,
+            Policy::Unconditional(rmatch_tpl.apply("xyz"), AMatch("a"), Effect::DENY)
+        );
     }
 }
