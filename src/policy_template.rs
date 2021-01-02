@@ -8,7 +8,7 @@ pub trait Template<T> {
 
 pub enum PolicyTemplate<RMatchTpl, AMatch, CExp> {
     Unconditional(RMatchTpl, AMatch, Effect),
-    // Conditional(RMatchTpl, AMatch, Effect, CExp),
+    Conditional(RMatchTpl, AMatch, Effect, CExp),
     Aggregate(Vec<Policy<RMatchTpl, AMatch, CExp>>),
 }
 
@@ -18,11 +18,12 @@ where
     RMatchTpl: Template<RMatch, Param = Param>,
 {
     type Param = Param;
-    fn apply(self, _p: Self::Param) -> Policy<RMatch, AMatch, CExp> {
+    fn apply(self, p: Self::Param) -> Policy<RMatch, AMatch, CExp> {
         use PolicyTemplate::*;
         match self {
             Aggregate(_) => Policy::Aggregate(vec![]),
-            Unconditional(rmtpl, am, eff) => Policy::Unconditional(rmtpl.apply(_p), am, eff),
+            Unconditional(rmtpl, am, eff) => Policy::Unconditional(rmtpl.apply(p), am, eff),
+            Conditional(rmtpl, am, eff, cond) => Policy::Conditional(rmtpl.apply(p), am, eff, cond),
         }
     }
 }
@@ -93,6 +94,52 @@ mod tests {
         assert_eq!(
             actual,
             Policy::Unconditional(rmatch_tpl.apply("xyz"), AMatch("a"), Effect::DENY)
+        );
+    }
+
+    #[test]
+    fn test_conditional_allow() {
+        let rmatch_tpl = RMatchTpl;
+        let template = PolicyTemplate::<RMatchTpl, AMatch, Cond>::Conditional(
+            rmatch_tpl,
+            AMatch("a"),
+            Effect::ALLOW,
+            Cond("c"),
+        );
+
+        let actual = template.apply("xyz");
+
+        assert_eq!(
+            actual,
+            Policy::Conditional(
+                rmatch_tpl.apply("xyz"),
+                AMatch("a"),
+                Effect::ALLOW,
+                Cond("c")
+            )
+        );
+    }
+
+    #[test]
+    fn test_conditional_deny() {
+        let rmatch_tpl = RMatchTpl;
+        let template = PolicyTemplate::<RMatchTpl, AMatch, Cond>::Conditional(
+            rmatch_tpl,
+            AMatch("a"),
+            Effect::DENY,
+            Cond("x"),
+        );
+
+        let actual = template.apply("xyz");
+
+        assert_eq!(
+            actual,
+            Policy::Conditional(
+                rmatch_tpl.apply("xyz"),
+                AMatch("a"),
+                Effect::DENY,
+                Cond("x")
+            )
         );
     }
 }
