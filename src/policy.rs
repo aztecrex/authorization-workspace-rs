@@ -11,7 +11,7 @@ pub trait ActionMatch {
     fn test(&self, action: &Self::Action) -> bool;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Policy<RMatch, AMatch, CExp> {
     Unconditional(RMatch, AMatch, Effect),
     Conditional(RMatch, AMatch, Effect, CExp),
