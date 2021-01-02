@@ -27,18 +27,12 @@ impl<CExp> ConditionalEffect<CExp> {
             }
             Fixed(perm) => Ok(Some(*perm)),
             Aggregate(perms) => {
-                use Effect::*;
                 let resolved: Result<Vec<Option<Effect>>, Env::Err> =
                     perms.iter().map(|p| p.resolve(environment)).collect();
                 let resolved = resolved?;
                 let resolved = resolved
                     .iter()
-                    .fold(None, |a: Option<Effect>, v| match (a, v) {
-                        (None, x) => *x,
-                        (x, None) => x,
-                        (Some(ALLOW), Some(ALLOW)) => Some(ALLOW),
-                        _ => Some(DENY),
-                    });
+                    .fold(None, |a, v| reduce_optional_effects(a, *v));
                 Ok(resolved)
             }
         }
