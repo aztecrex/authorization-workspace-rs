@@ -7,6 +7,7 @@ pub enum ConditionalEffect<CExp> {
     Atomic(Effect, CExp),
     Fixed(Effect),
     Aggregate(Vec<ConditionalEffect<CExp>>),
+    Disjoint(Vec<ConditionalEffect<CExp>>),
 }
 
 impl<CExp> ConditionalEffect<CExp> {
@@ -35,6 +36,7 @@ impl<CExp> ConditionalEffect<CExp> {
                     .fold(None, |a, v| reduce_optional_effects(a, *v));
                 Ok(resolved)
             }
+            Disjoint(_) => unimplemented!(),
         }
     }
 }

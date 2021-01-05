@@ -18,4 +18,3 @@ pub trait Authorization {
         query: dyn Iterator<Item = (Self::Resource, Self::Action)>,
     ) -> Result<Vec<((Self::Resource, Self::Action), Effect)>, Self::Err>;
 }
-

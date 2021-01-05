@@ -50,6 +50,24 @@ where
     }
 }
 
+pub fn apply_disjoint<R, A, Iter, CExp, RMatch, AMatch>(
+    policies: Iter,
+    resource: &R,
+    action: &A,
+) -> ConditionalEffect<CExp>
+where
+    Iter: IntoIterator<Item = Policy<RMatch, AMatch, CExp>>,
+    RMatch: ResourceMatch<Resource = R>,
+    AMatch: ActionMatch<Action = A>,
+{
+    ConditionalEffect::Disjoint(
+        policies
+            .into_iter()
+            .map(|p| p.apply(resource, action))
+            .collect(),
+    )
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -167,5 +185,41 @@ mod tests {
                     .collect()
             )
         );
+    }
+
+    #[test]
+    fn test_disjoint() {
+        let policies = vec![
+            Policy::Conditional(MATCH_R, MATCH_A, ALLOW, 18),
+            Policy::Conditional(MATCH_R, MATCH_A, DENY, 19),
+            Policy::Unconditional(MATCH_R, MATCH_A, ALLOW),
+            Policy::Unconditional(MATCH_R, MATCH_A, DENY),
+            Policy::Conditional(MATCH_R, MATCH_MISS, ALLOW, 20),
+            Policy::Conditional(MATCH_MISS, MATCH_A, DENY, 21),
+            Policy::Unconditional(MATCH_MISS, MATCH_A, ALLOW),
+            Policy::Unconditional(MATCH_R, MATCH_MISS, DENY),
+            Policy::Aggregate(vec![Policy::Aggregate(vec![
+                Policy::Conditional(MATCH_R, MATCH_A, ALLOW, 18),
+                Policy::Conditional(MATCH_R, MATCH_A, DENY, 19),
+                Policy::Unconditional(MATCH_R, MATCH_A, ALLOW),
+                Policy::Unconditional(MATCH_R, MATCH_A, DENY),
+                Policy::Conditional(MATCH_R, MATCH_MISS, ALLOW, 20),
+                Policy::Conditional(MATCH_MISS, MATCH_A, DENY, 21),
+                Policy::Unconditional(MATCH_MISS, MATCH_A, ALLOW),
+                Policy::Unconditional(MATCH_R, MATCH_MISS, DENY),
+            ])]),
+        ];
+        let r = Resource("r");
+        let a = Action("a");
+
+        let actual = apply_disjoint(policies.clone(), &r, &a);
+
+        let expected = ConditionalEffect::Disjoint(
+            policies
+                .iter()
+                .map(|p| p.clone().apply(&Resource("r"), &Action("a")))
+                .collect(),
+        );
+        assert_eq!(actual, expected);
     }
 }
