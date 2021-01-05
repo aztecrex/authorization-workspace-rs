@@ -55,11 +55,15 @@ impl<CExp> ConditionalEffect<CExp> {
                 } else {
                     let resolved: Result<Vec<Option<Effect>>, Env::Err> =
                         effs.into_iter().map(|p| p.resolve(environment)).collect();
-                    let resolved = resolved.ok().unwrap();
-                    if resolved.into_iter().all(|e| e == Some(ALLOW)) {
-                        Ok(Some(ALLOW))
-                    } else {
-                        Ok(Some(DENY))
+                    match resolved {
+                        Err(err) => Err(err),
+                        Ok(resolved) => {
+                            if resolved.into_iter().all(|e| e == Some(ALLOW)) {
+                                Ok(Some(ALLOW))
+                            } else {
+                                Ok(Some(DENY))
+                            }
+                        }
                     }
                 }
             }
@@ -475,6 +479,14 @@ mod tests {
                 Atomic(ALLOW, TestExpression::Match),
             ],
             Ok(Some(ALLOW)),
+        );
+        check_disjoint(
+            vec![
+                Atomic(ALLOW, TestExpression::Match),
+                Atomic(ALLOW, TestExpression::Error),
+                Atomic(DENY, TestExpression::Match),
+            ],
+            Err(()),
         );
     }
 }
