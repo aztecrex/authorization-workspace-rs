@@ -1,9 +1,18 @@
+//! Authorization query effects and functions.
+//!
+
+/// Result of an authorization inquiry
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Effect {
+    /// Authorization is granted
     ALLOW,
+
+    /// Authorization is denied
     DENY,
 }
 
+/// Combine two effects for evaluating an aggregate. Result is `Effect::ALLOW` iff
+/// both arguments are `Effect::ALLOW`.
 pub fn reduce_effects(e1: Effect, e2: Effect) -> Effect {
     use Effect::*;
 
@@ -14,6 +23,10 @@ pub fn reduce_effects(e1: Effect, e2: Effect) -> Effect {
     }
 }
 
+/// Combine two optional effets for evaluating an aggregate. `None` is interpreted to
+/// mean silence and if either argument is `None`, then the result is `None`. If both arguments
+/// are `Some(eff)` the result is also `Some(r)` where `r` is the result of applying
+/// `reduce_effects(..)` to the inner values.
 pub fn reduce_optional_effects(e1: Option<Effect>, e2: Option<Effect>) -> Option<Effect> {
     match (e1, e2) {
         (None, x) => x,
