@@ -3,11 +3,21 @@
 use super::condition::*;
 use super::effect::*;
 
+/// With respect to an environment, a conditional effect applies
+/// iff its condition is true in the environment.  Some of the
+/// variants are unconditional, i.e. they return a const value independent
+/// of the environment
 #[derive(Debug, PartialEq, Eq)]
 pub enum ConditionalEffect<CExp> {
+    /// Unconditional silence. Resolves to `None` in any environment.
     Silent,
-    Atomic(Effect, CExp),
+    /// Unconditional effect. Resolves to `Some(Effect)` in any environment.
     Fixed(Effect),
+    /// Basic conditional effect. With respect to an environment, Resolves to `Some(Effect)` iff its condition
+    /// evaluates to `Ok(Some(true))` in the environment.
+    Atomic(Effect, CExp),
+    /// Multiple policy aggregate. It resolves by resolving then folding its constituents
+    /// according to `effect::resolve
     Aggregate(Vec<ConditionalEffect<CExp>>),
     Disjoint(Vec<ConditionalEffect<CExp>>),
 }
