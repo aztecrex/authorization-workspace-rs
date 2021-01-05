@@ -1,3 +1,5 @@
+//! Effects that depend on environmental conditions
+
 use super::condition::*;
 use super::effect::*;
 
