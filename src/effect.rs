@@ -10,27 +10,44 @@ pub enum Effect {
     DENY,
 }
 
-/// Effect resulting from an authorization computation. Represents
-/// definite `Effect` with an additional value representing an undetermined
+impl Effect {
+    /// Determine if Effect authorizes access. The only effect that authorizes
+    /// access is `Effect::ALLOW`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use authorization_core::effect::*;
+    ///
+    /// assert_eq!(Effect::ALLOW.authorized(), true);
+    /// assert_eq!(Effect::DENY.authorized(), false);
+    /// ```
+    pub fn authorized(self) -> bool {
+        self == Self::ALLOW
+    }
+}
+
+/// Result of an authorization computation. Represents
+/// definite `Effect` plus an additional value representing an undetermined
 /// (i.e. silent) effect. It is equivalent to `Option<Effect>` but defined
-/// as a newtype for synbolic clarity and for implementing standard traits.
+/// as a newtype for symbolic clarity and for implementing standard traits.
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Default)]
 pub struct ComputedEffect(Option<Effect>);
 
-/// Authorization is not determined from a computation
+/// Indefinite authorization
 pub const SILENT: ComputedEffect = ComputedEffect(None);
 
-/// Authorized
+/// Definitely Authorized
 pub const ALLOW: ComputedEffect = ComputedEffect(Some(Effect::ALLOW));
 
-/// Undauthorized
+/// Definitely Unauthorized
 pub const DENY: ComputedEffect = ComputedEffect(Some(Effect::DENY));
 
 impl ComputedEffect {
     /// Determine if ComputedEffect authorizes access. The only effect that authorizes
     /// access is `ALLOW`.
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```
     /// use authorization_core::effect::*;
@@ -56,14 +73,14 @@ impl From<Option<Effect>> for ComputedEffect {
     }
 }
 
-/// Combine multiple optional effects in non-strict fashion. The result is
+/// Combine multiple `ComputedEffext`s in non-strict fashion. The result is
 /// `ALLOW` if and only if there is at least one `ALLOW` constituent and
 /// no `DENY` constituents.
 ///
-/// This is used when evaluating multipl effects for a single principal. Total
-/// silence indicates unauthorized as does the presence of any `DENY`. But if
-/// at least one effect can be found to `ALLOW` and there are not results
-/// that are `DENY`, the principal is authorized.
+/// This is used when combining computed effects for a single principal. The
+/// result is `SILENT` if there are no consituents or if all constituents
+/// are silence. Otherwise silence is ignored and any `DENY` consituent will
+/// cause the result to be `DENY`.
 ///
 /// # Examples
 ///
@@ -71,7 +88,7 @@ impl From<Option<Effect>> for ComputedEffect {
 /// use authorization_core::effect::*;
 ///
 /// // empty is silence
-/// assert_eq!(SILENT, combine_non_strict(Vec::default()));
+/// assert_eq!(SILENT, combine_non_strict(vec![]));
 ///
 /// // all silence is silence
 /// assert_eq!(SILENT, combine_non_strict(vec![SILENT, SILENT]));
@@ -98,13 +115,16 @@ where
 
 /// Combine mutiple effects in strict fashion. The result is `ALLOW` if
 /// and only if there is at least one constituent effect and every consituent
-/// effect is `ALLOW`
+/// effect is `ALLOW`. Any consituent silence will result in silence. If all
+/// constituents are definite (and there is a least one), conbination works
+/// the same as for non-strict wherein any consituent `DENY` results in `DENY`.
 ///
 /// As with non-strict, if there are no constituents, the result is `SILENT`.
 ///
 /// This function is used to combine effects for composite principals where a result
 /// is determined for each atomic principal. In this case, access is authorized if
-/// and only if access is authorized for each atomic principal.
+/// and only if access is authorized for each atomic principal. Silence is preserved
+/// so the result can be further combined if needed.
 ///
 /// # Examles
 ///
@@ -112,7 +132,7 @@ where
 /// use authorization_core::effect::*;
 ///
 /// // silence if no constituents
-/// assert_eq!(SILENT, combine_strict(Vec::default()));
+/// assert_eq!(SILENT, combine_strict(vec![]));
 ///
 /// // all silence is silence
 /// assert_eq!(SILENT, combine_strict(vec![SILENT, SILENT]));
@@ -147,18 +167,28 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_authorized_allow() {
+    fn test_authorized_definite_allow() {
         assert_eq!(ALLOW.authorized(), true);
     }
 
     #[test]
-    fn test_authorized_deny() {
+    fn test_not_authorized_definite_deny() {
         assert_eq!(DENY.authorized(), false);
     }
 
     #[test]
-    fn test_authorized_silent() {
+    fn test_not_authorized_silent() {
         assert_eq!(SILENT.authorized(), false);
+    }
+
+    #[test]
+    fn test_authorized_effect_allow() {
+        assert_eq!(Effect::ALLOW.authorized(), true);
+    }
+
+    #[test]
+    fn test_unauthorized_effect_deny() {
+        assert_eq!(Effect::DENY.authorized(), false);
     }
 
     #[test]
