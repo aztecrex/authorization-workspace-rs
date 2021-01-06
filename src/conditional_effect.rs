@@ -1,12 +1,10 @@
 //! Effects that depend on environmental conditions
 
 use super::condition::*;
-use super::effect::*;
+use super::authorization::*;
 
 /// With respect to an environment, a conditional effect applies
-/// iff its condition is true in the environment.  Some of the
-/// variants are unconditional, i.e. they return a const value independent
-/// of the environment
+/// if and only if its condition is true in the environment.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ConditionalEffect<CExp> {
     /// Unconditional silence. Resolves to `None` in any environment.

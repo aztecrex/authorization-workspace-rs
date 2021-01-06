@@ -1,4 +1,4 @@
-use crate::effect::*;
+use crate::authorization::*;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Principal<Id> {

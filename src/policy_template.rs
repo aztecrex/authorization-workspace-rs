@@ -1,4 +1,4 @@
-use super::effect::Effect;
+use super::authorization::Effect;
 use super::policy::*;
 
 pub trait Template<T> {
