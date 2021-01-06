@@ -3,47 +3,14 @@
 
 /// Result of an authorization inquiry
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-#[deprecated()]
 pub enum Effect {
-    /// Authorization is granted
+    /// Authorized.
     ALLOW,
-
-    /// Authorization is denied
+    /// Not authorized.
     DENY,
 }
 
-/// Result of authorization inquiry.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Effect2 {
-    // Authorized.
-    ALLOW,
-    // Not authorized.
-    DENY,
-}
 
-/// Combine two effects for evaluating an aggregate. Result is `Effect::ALLOW` iff
-/// both arguments are `Effect::ALLOW`.
-pub fn reduce_effects(e1: Effect, e2: Effect) -> Effect {
-    use Effect::*;
-
-    if e1 == ALLOW {
-        e2
-    } else {
-        DENY
-    }
-}
-
-/// Combine two optional effets for evaluating an aggregate. `None` is interpreted to
-/// mean silence and if either argument is `None`, then the result is `None`. If both arguments
-/// are `Some(eff)` the result is also `Some(r)` where `r` is the result of applying
-/// `reduce_effects(..)` to the inner values.
-pub fn reduce_optional_effects(e1: Option<Effect>, e2: Option<Effect>) -> Option<Effect> {
-    match (e1, e2) {
-        (None, x) => x,
-        (x, None) => x,
-        (Some(x), Some(y)) => Some(reduce_effects(x, y)),
-    }
-}
 
 /// Combine multiple optional effects in non-strict fashion. i.e. where combining
 /// can result in silence. This function returns silence iff the argument is empty or
@@ -57,7 +24,7 @@ pub fn reduce_optional_effects(e1: Option<Effect>, e2: Option<Effect>) -> Option
 ///
 /// ```
 /// use authorization_core::effect::*;
-/// use Effect2::*;
+/// use Effect::*;
 ///
 /// // empty is silence
 /// assert_eq!(None, combine_non_strict(Vec::default()));
@@ -73,11 +40,11 @@ pub fn reduce_optional_effects(e1: Option<Effect>, e2: Option<Effect>) -> Option
 /// assert_eq!(Some(DENY), combine_non_strict(vec![Some(ALLOW), Some(DENY), Some(ALLOW)]));
 /// assert_eq!(Some(ALLOW), combine_non_strict(vec![Some(ALLOW), Some(ALLOW), Some(ALLOW)]));
 /// ```
-pub fn combine_non_strict<I>(effs: I) -> Option<Effect2>
+pub fn combine_non_strict<I>(effs: I) -> Option<Effect>
 where
-    I: IntoIterator<Item = Option<Effect2>>,
+    I: IntoIterator<Item = Option<Effect>>,
 {
-    use Effect2::*;
+    use Effect::*;
 
     effs.into_iter().fold(None, |a, e| match (a, e) {
         (None, x) => x,
@@ -98,7 +65,7 @@ where
 ///
 /// ```
 /// use authorization_core::effect::*;
-/// use Effect2::*;
+/// use Effect::*;
 ///
 /// // empty is silence
 /// assert_eq!(None, combine_strict(Vec::default()));
@@ -114,16 +81,16 @@ where
 /// assert_eq!(Some(DENY), combine_strict(vec![Some(ALLOW), Some(DENY), Some(ALLOW)]));
 /// assert_eq!(Some(ALLOW), combine_strict(vec![Some(ALLOW), Some(ALLOW), Some(ALLOW)]));
 /// ```
-pub fn combine_strict<I>(effs: I) -> Option<Effect2>
+pub fn combine_strict<I>(effs: I) -> Option<Effect>
 where
-    I: IntoIterator<Item = Option<Effect2>>,
+    I: IntoIterator<Item = Option<Effect>>,
 {
-    use Effect2::*;
+    use Effect::*;
 
-    const O_INIT: Option<Option<Effect2>> = None;
-    const O_SILENCE: Option<Effect2> = None;
-    const O_ALLOW: Option<Effect2> = Some(ALLOW);
-    const O_DENY: Option<Effect2> = Some(DENY);
+    const O_INIT: Option<Option<Effect>> = None;
+    const O_SILENCE: Option<Effect> = None;
+    const O_ALLOW: Option<Effect> = Some(ALLOW);
+    const O_DENY: Option<Effect> = Some(DENY);
 
     effs.into_iter()
         .fold(O_INIT, |a, e| match (a, e) {
@@ -140,44 +107,13 @@ where
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_reduce() {
-        use Effect::*;
-        assert_eq!(reduce_effects(ALLOW, DENY), DENY);
-        assert_eq!(reduce_effects(ALLOW, ALLOW), ALLOW);
-        assert_eq!(reduce_effects(DENY, DENY), DENY);
-        assert_eq!(reduce_effects(DENY, ALLOW), DENY);
-    }
-
-    #[test]
-    fn test_reduce_optional() {
-        use Effect::*;
-        fn check_reduce_optional(e1: Effect, e2: Effect) {
-            assert_eq!(
-                reduce_optional_effects(Some(e1), Some(e2)),
-                Some(reduce_effects(e1, e2))
-            );
-        }
-
-        check_reduce_optional(ALLOW, DENY);
-        check_reduce_optional(ALLOW, ALLOW);
-        check_reduce_optional(DENY, ALLOW);
-        check_reduce_optional(DENY, DENY);
-
-        assert_eq!(reduce_optional_effects(Some(DENY), None), Some(DENY));
-        assert_eq!(reduce_optional_effects(Some(ALLOW), None), Some(ALLOW));
-        assert_eq!(reduce_optional_effects(None, Some(DENY)), Some(DENY));
-        assert_eq!(reduce_optional_effects(None, Some(ALLOW)), Some(ALLOW));
-
-        assert_eq!(reduce_optional_effects(None, None), None);
-    }
 
     #[test]
     fn test_combine_non_strict() {
-        use Effect2::*;
-        fn check<I>(effs: I, expected: Option<Effect2>)
+        use Effect::*;
+        fn check<I>(effs: I, expected: Option<Effect>)
         where
-            I: IntoIterator<Item = Option<Effect2>>,
+            I: IntoIterator<Item = Option<Effect>>,
         {
             assert_eq!(combine_non_strict(effs), expected);
         }
@@ -204,10 +140,10 @@ mod tests {
 
     #[test]
     fn test_combine_strict() {
-        use Effect2::*;
-        fn check<I>(effs: I, expected: Option<Effect2>)
+        use Effect::*;
+        fn check<I>(effs: I, expected: Option<Effect>)
         where
-            I: IntoIterator<Item = Option<Effect2>>,
+            I: IntoIterator<Item = Option<Effect>>,
         {
             assert_eq!(combine_strict(effs), expected);
         }

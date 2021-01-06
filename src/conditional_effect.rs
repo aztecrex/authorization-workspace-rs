@@ -28,7 +28,6 @@ impl<CExp> ConditionalEffect<CExp> {
         Env: Environment<CExp = CExp>,
     {
         use ConditionalEffect::*;
-        use Effect::*;
         match self {
             Silent => Ok(None),
             Atomic(perm, cexp) => {
@@ -44,28 +43,17 @@ impl<CExp> ConditionalEffect<CExp> {
                 let resolved: Result<Vec<Option<Effect>>, Env::Err> =
                     perms.iter().map(|p| p.resolve(environment)).collect();
                 let resolved = resolved?;
-                let resolved = resolved
-                    .iter()
-                    .fold(None, |a, v| reduce_optional_effects(a, *v));
+                let resolved = combine_non_strict(resolved);
                 Ok(resolved)
             }
             Disjoint(effs) => {
-                if effs.is_empty() {
-                    Ok(Some(DENY))
-                } else {
-                    let resolved: Result<Vec<Option<Effect>>, Env::Err> =
-                        effs.into_iter().map(|p| p.resolve(environment)).collect();
-                    match resolved {
-                        Err(err) => Err(err),
-                        Ok(resolved) => {
-                            if resolved.into_iter().all(|e| e == Some(ALLOW)) {
-                                Ok(Some(ALLOW))
-                            } else {
-                                Ok(Some(DENY))
-                            }
-                        }
-                    }
-                }
+
+                let resolved: Result<Vec<Option<Effect>>, Env::Err> =
+                effs.into_iter().map(|p| p.resolve(environment)).collect();
+                let resolved = resolved?;
+                let resolved = combine_strict(resolved);
+
+                Ok(resolved)
             }
         }
     }
@@ -414,7 +402,7 @@ mod tests {
 
         let actual = effect.resolve(&TestEnv);
 
-        assert_eq!(actual, Ok(Some(DENY)))
+        assert_eq!(actual, Ok(None))
     }
 
     #[test]
@@ -424,7 +412,7 @@ mod tests {
 
         let actual = effect.resolve(&TestEnv);
 
-        assert_eq!(actual, Ok(Some(DENY)))
+        assert_eq!(actual, Ok(None))
     }
 
     fn check_disjoint(
@@ -442,29 +430,29 @@ mod tests {
     fn test_resolve_disjoint() {
         use ConditionalEffect::*;
 
-        check_disjoint(vec![Silent, Fixed(ALLOW)], Ok(Some(DENY)));
-        check_disjoint(vec![Fixed(ALLOW), Silent], Ok(Some(DENY)));
+        check_disjoint(vec![Silent, Fixed(ALLOW)], Ok(None));
+        check_disjoint(vec![Fixed(ALLOW), Silent], Ok(None));
         check_disjoint(vec![Fixed(ALLOW), Fixed(ALLOW)], Ok(Some(ALLOW)));
         check_disjoint(vec![Fixed(ALLOW), Fixed(DENY)], Ok(Some(DENY)));
         check_disjoint(vec![Fixed(DENY), Fixed(ALLOW)], Ok(Some(DENY)));
-        check_disjoint(vec![Fixed(DENY), Silent], Ok(Some(DENY)));
-        check_disjoint(vec![Silent, Fixed(DENY)], Ok(Some(DENY)));
+        check_disjoint(vec![Fixed(DENY), Silent], Ok(None));
+        check_disjoint(vec![Silent, Fixed(DENY)], Ok(None));
         check_disjoint(vec![Atomic(ALLOW, TestExpression::Match)], Ok(Some(ALLOW)));
         check_disjoint(vec![Atomic(DENY, TestExpression::Match)], Ok(Some(DENY)));
         check_disjoint(
             vec![Atomic(DENY, TestExpression::Miss), Fixed(ALLOW)],
-            Ok(Some(DENY)),
+            Ok(None),
         );
         check_disjoint(
             vec![Atomic(ALLOW, TestExpression::Miss), Fixed(DENY)],
-            Ok(Some(DENY)),
+            Ok(None),
         );
         check_disjoint(
             vec![
                 Atomic(ALLOW, TestExpression::Match),
                 Atomic(DENY, TestExpression::Miss),
             ],
-            Ok(Some(DENY)),
+            Ok(None),
         );
         check_disjoint(
             vec![
