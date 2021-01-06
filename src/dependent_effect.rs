@@ -25,7 +25,7 @@ pub enum DependentEffect<CExp> {
 }
 
 impl<CExp> DependentEffect<CExp> {
-    pub fn resolve<Env>(&self, environment: &Env) -> Result<Option<Effect>, Env::Err>
+    pub fn resolve<Env>(&self, environment: &Env) -> Result<IndefiniteEffect, Env::Err>
     where
         Env: Environment<CExp = CExp>,
     {
@@ -42,14 +42,14 @@ impl<CExp> DependentEffect<CExp> {
             }
             Fixed(perm) => Ok(Some(*perm)),
             Aggregate(perms) => {
-                let resolved: Result<Vec<Option<Effect>>, Env::Err> =
+                let resolved: Result<Vec<IndefiniteEffect>, Env::Err> =
                     perms.iter().map(|p| p.resolve(environment)).collect();
                 let resolved = resolved?;
                 let resolved = combine_non_strict(resolved);
                 Ok(resolved)
             }
             Disjoint(effs) => {
-                let resolved: Result<Vec<Option<Effect>>, Env::Err> =
+                let resolved: Result<Vec<IndefiniteEffect>, Env::Err> =
                     effs.into_iter().map(|p| p.resolve(environment)).collect();
                 let resolved = resolved?;
                 let resolved = combine_strict(resolved);
@@ -63,7 +63,7 @@ impl<CExp> DependentEffect<CExp> {
 pub fn resolve_all<'a, CExp: 'a, Env>(
     perms: impl Iterator<Item = &'a DependentEffect<CExp>>,
     environment: &Env,
-) -> Result<Vec<Option<Effect>>, Env::Err>
+) -> Result<Vec<IndefiniteEffect>, Env::Err>
 where
     Env: Environment<CExp = CExp>,
 {
@@ -190,7 +190,7 @@ mod tests {
 
         let actual = perm.resolve(&TestEnv);
 
-        let expect: Result<Vec<Option<Effect>>, ()> =
+        let expect: Result<Vec<IndefiniteEffect>, ()> =
             config.into_iter().map(|e| e.resolve(&TestEnv)).collect();
         let expect = expect.map(combine_non_strict);
 
@@ -410,7 +410,7 @@ mod tests {
 
             let actual = eff.resolve(&TestEnv);
 
-            let expected: Result<Vec<Option<Effect>>, ()> =
+            let expected: Result<Vec<IndefiniteEffect>, ()> =
                 effs.into_iter().map(|e| e.resolve(&TestEnv)).collect();
             let expected = expected.map(combine_strict);
 

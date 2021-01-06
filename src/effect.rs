@@ -1,7 +1,7 @@
-//! Effect query effects and functions.
+//! Authorization effects.
 //!
 
-/// Result of an authorization inquiry
+/// Definite authorization
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Effect {
     /// Authorized.
@@ -9,6 +9,13 @@ pub enum Effect {
     /// Not authorized.
     DENY,
 }
+
+/// Potentially silent effect. Used in situations where a definite effect might no
+/// be determinable.
+pub type IndefiniteEffect = Option<Effect>;
+
+/// Undetermined effect. Used when definite effect cannot be determined.
+pub const SILENT: IndefiniteEffect = None;
 
 /// Determine if an authorization denotes authorization. `Some(ALLOW)` is the
 /// only final result denoting authorization.
@@ -23,7 +30,7 @@ pub enum Effect {
 /// assert_eq!(authorized(Some(DENY)), false);
 /// assert_eq!(authorized(None), false);
 /// ```
-pub fn authorized(eff: Option<Effect>) -> bool {
+pub fn authorized(eff: IndefiniteEffect) -> bool {
     eff == Some(Effect::ALLOW)
 }
 
@@ -55,9 +62,9 @@ pub fn authorized(eff: Option<Effect>) -> bool {
 /// assert_eq!(Some(DENY), combine_non_strict(vec![Some(ALLOW), Some(DENY), Some(ALLOW)]));
 /// assert_eq!(Some(ALLOW), combine_non_strict(vec![Some(ALLOW), Some(ALLOW), Some(ALLOW)]));
 /// ```
-pub fn combine_non_strict<I>(effs: I) -> Option<Effect>
+pub fn combine_non_strict<I>(effs: I) -> IndefiniteEffect
 where
-    I: IntoIterator<Item = Option<Effect>>,
+    I: IntoIterator<Item = IndefiniteEffect>,
 {
     use Effect::*;
 
@@ -96,16 +103,16 @@ where
 /// assert_eq!(Some(DENY), combine_strict(vec![Some(ALLOW), Some(DENY), Some(ALLOW)]));
 /// assert_eq!(Some(ALLOW), combine_strict(vec![Some(ALLOW), Some(ALLOW), Some(ALLOW)]));
 /// ```
-pub fn combine_strict<I>(effs: I) -> Option<Effect>
+pub fn combine_strict<I>(effs: I) -> IndefiniteEffect
 where
-    I: IntoIterator<Item = Option<Effect>>,
+    I: IntoIterator<Item = IndefiniteEffect>,
 {
     use Effect::*;
 
-    const O_INIT: Option<Option<Effect>> = None;
-    const O_SILENCE: Option<Effect> = None;
-    const O_ALLOW: Option<Effect> = Some(ALLOW);
-    const O_DENY: Option<Effect> = Some(DENY);
+    const O_INIT: Option<IndefiniteEffect> = None;
+    const O_SILENCE: IndefiniteEffect = None;
+    const O_ALLOW: IndefiniteEffect = Some(ALLOW);
+    const O_DENY: IndefiniteEffect = Some(DENY);
 
     effs.into_iter()
         .fold(O_INIT, |a, e| match (a, e) {
@@ -140,9 +147,9 @@ mod tests {
     #[test]
     fn test_combine_non_strict() {
         use Effect::*;
-        fn check<I>(effs: I, expected: Option<Effect>)
+        fn check<I>(effs: I, expected: IndefiniteEffect)
         where
-            I: IntoIterator<Item = Option<Effect>>,
+            I: IntoIterator<Item = IndefiniteEffect>,
         {
             assert_eq!(combine_non_strict(effs), expected);
         }
@@ -170,9 +177,9 @@ mod tests {
     #[test]
     fn test_combine_strict() {
         use Effect::*;
-        fn check<I>(effs: I, expected: Option<Effect>)
+        fn check<I>(effs: I, expected: IndefiniteEffect)
         where
-            I: IntoIterator<Item = Option<Effect>>,
+            I: IntoIterator<Item = IndefiniteEffect>,
         {
             assert_eq!(combine_strict(effs), expected);
         }
