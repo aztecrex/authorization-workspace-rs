@@ -10,7 +10,7 @@ pub enum Authorization {
     DENY,
 }
 
-/// Determine if an optional effect denotes authorization. `Some(ALLOW)` is the
+/// Determine if an authorization denotes authorization. `Some(ALLOW)` is the
 /// only final result denoting authorization.
 ///
 /// # Example

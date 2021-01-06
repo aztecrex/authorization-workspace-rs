@@ -3,20 +3,24 @@
 use super::authorization::*;
 use super::condition::*;
 
-/// With respect to an environment, a conditional effect applies
-/// if and only if its condition is true in the environment.
+///  A dependent authorization. An effect is evaluated in the context of
+/// an environment to produce an `Authorization`.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Effect<CExp> {
     /// Unconditional silence. Resolves to `None` in any environment.
     Silent,
+
     /// Unconditional effect. Resolves to `Some(Authorization)` in any environment.
     Fixed(Authorization),
+
     /// Basic conditional effect. With respect to an environment, Resolves to `Some(Authorization)` iff its condition
     /// evaluates to `Ok(Some(true))` in the environment.
     Atomic(Authorization, CExp),
-    /// Multiple policy aggregate. It resolves by resolving then folding its constituents
-    /// according to `effect::resolve
+    /// Combines multiple effects for  single principal. It is evaluated using
+    /// `authorization_core::authorization::combine_non_strict(_)`
     Aggregate(Vec<Effect<CExp>>),
+    /// Combines the effects of multiple principals. It is evaluated using
+    /// `authorization_core::authorization::combine_strict(_)`
     Disjoint(Vec<Effect<CExp>>),
 }
 
