@@ -1,4 +1,4 @@
-//! Effects that depend on environmental conditions
+//! Authorization effects that depend on environmental conditions
 
 use super::effect::*;
 use super::environment::*;

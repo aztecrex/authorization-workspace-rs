@@ -73,7 +73,7 @@ impl From<Option<Effect>> for ComputedEffect {
     }
 }
 
-/// Combine multiple `ComputedEffext`s in non-strict fashion. The result is
+/// Combine multiple `ComputedEffect`s in non-strict fashion. The result is
 /// `ALLOW` if and only if there is at least one `ALLOW` constituent and
 /// no `DENY` constituents.
 ///
@@ -113,7 +113,7 @@ where
     })
 }
 
-/// Combine mutiple effects in strict fashion. The result is `ALLOW` if
+/// Combine mutiple computed effects in strict fashion. The result is `ALLOW` if
 /// and only if there is at least one constituent effect and every consituent
 /// effect is `ALLOW`. Any consituent silence will result in silence. If all
 /// constituents are definite (and there is a least one), conbination works

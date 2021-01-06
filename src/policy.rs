@@ -1,19 +1,41 @@
+//! Policy configurations.
+
 use super::dependent_effect::*;
 use super::effect::*;
+
+/// Trait for matching resources. When evaluating a policy, this is used to determine if
+/// the policy applies with respect to a concrete resource.
 pub trait ResourceMatch {
+    /// The type of resource that can be matched.
     type Resource;
+
+    /// Determine if a concrete resource matches
     fn test(&self, resource: &Self::Resource) -> bool;
 }
 
+/// Trait for matching actions. When evaluating a policy, this is used to determine if
+/// the policy applies with respect to a concrete action.
 pub trait ActionMatch {
+    /// The type of action matched by this implementation.
     type Action;
+
+    /// Determine if a concrete action matches
     fn test(&self, action: &Self::Action) -> bool;
 }
 
+/// A configured authorization policy.
+///
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Policy<RMatch, AMatch, CExp> {
+    /// Applies if resource and action match but does not depend
+    /// on a condition. If matched, it evaluates to `CompputedEffect::Fixed(_)`.
     Unconditional(RMatch, AMatch, Effect),
+
+    /// Applies if resource and action match and result is conditional on environment.
+    /// If matched, it evaluates to `ComputedEffect::Atomic(_)`.
     Conditional(RMatch, AMatch, Effect, CExp),
+
+    /// Always applies. It evaluates to `ConditionalEffect::Aggregate(_)`.
     Aggregate(Vec<Policy<RMatch, AMatch, CExp>>),
 }
 
@@ -22,7 +44,8 @@ where
     RMatch: ResourceMatch<Resource = R>,
     AMatch: ActionMatch<Action = A>,
 {
-    fn applies(&self, resource: &R, action: &A) -> bool {
+    /// Determine if policy applies to a concrete resource and action.
+    pub fn applies(&self, resource: &R, action: &A) -> bool {
         use Policy::*;
 
         match self {
@@ -32,6 +55,8 @@ where
         }
     }
 
+    /// Apply policy to a concrete resource and action. Results in a `ComputedEffect` that
+    /// can be evaluated in an environment.
     pub fn apply(self, resource: &R, action: &A) -> DependentEffect<CExp> {
         use Policy::*;
 
@@ -49,6 +74,9 @@ where
     }
 }
 
+/// Apply multiple policies using a strict algorithm. This is used when evaluating
+/// policies for a composite principal (e.g. application + user) where authorization
+/// requires all consitutents to be authorized.
 pub fn apply_disjoint<R, A, Iter, CExp, RMatch, AMatch>(
     policies: Iter,
     resource: &R,
