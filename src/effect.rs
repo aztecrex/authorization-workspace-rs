@@ -3,7 +3,7 @@
 
 /// Definite authorization
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Permission {
+pub enum Effect {
     /// Authorized.
     ALLOW,
     /// Not authorized.
@@ -11,19 +11,19 @@ pub enum Permission {
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Default)]
-pub struct Effect(Option<Permission>);
+pub struct ComputedEffect(Option<Effect>);
 
 /// Authorization is not determined from a computation
-pub const SILENT: Effect = Effect(None);
+pub const SILENT: ComputedEffect = ComputedEffect(None);
 
 /// Authorized
-pub const ALLOW: Effect = Effect(Some(Permission::ALLOW));
+pub const ALLOW: ComputedEffect = ComputedEffect(Some(Effect::ALLOW));
 
 /// Undauthorized
-pub const DENY: Effect = Effect(Some(Permission::DENY));
+pub const DENY: ComputedEffect = ComputedEffect(Some(Effect::DENY));
 
-impl Effect {
-    /// Determine if Effect authorizes access. The only effect that authorizes
+impl ComputedEffect {
+    /// Determine if ComputedEffect authorizes access. The only effect that authorizes
     /// access is `ALLOW`.
     ///
     /// # Example
@@ -40,15 +40,15 @@ impl Effect {
     }
 }
 
-impl From<Permission> for Effect {
-    fn from(permission: Permission) -> Self {
-        Effect(Some(permission))
+impl From<Effect> for ComputedEffect {
+    fn from(permission: Effect) -> Self {
+        ComputedEffect(Some(permission))
     }
 }
 
-impl From<Option<Permission>> for Effect {
-    fn from(maybe_permission: Option<Permission>) -> Self {
-        Effect(maybe_permission)
+impl From<Option<Effect>> for ComputedEffect {
+    fn from(maybe_permission: Option<Effect>) -> Self {
+        ComputedEffect(maybe_permission)
     }
 }
 
@@ -80,9 +80,9 @@ impl From<Option<Permission>> for Effect {
 /// assert_eq!(DENY, combine_non_strict(vec![ALLOW, DENY, ALLOW]));
 /// assert_eq!(ALLOW, combine_non_strict(vec![ALLOW, ALLOW, ALLOW]));
 /// ```
-pub fn combine_non_strict<I>(effs: I) -> Effect
+pub fn combine_non_strict<I>(effs: I) -> ComputedEffect
 where
-    I: IntoIterator<Item = Effect>,
+    I: IntoIterator<Item = ComputedEffect>,
 {
     effs.into_iter().fold(SILENT, |a, e| match (a, e) {
         (SILENT, x) => x,
@@ -121,11 +121,11 @@ where
 /// assert_eq!(DENY, combine_strict(vec![ALLOW, DENY, ALLOW]));
 /// assert_eq!(ALLOW, combine_strict(vec![ALLOW, ALLOW, ALLOW]));
 /// ```
-pub fn combine_strict<I>(effs: I) -> Effect
+pub fn combine_strict<I>(effs: I) -> ComputedEffect
 where
-    I: IntoIterator<Item = Effect>,
+    I: IntoIterator<Item = ComputedEffect>,
 {
-    const INIT: Option<Effect> = None;
+    const INIT: Option<ComputedEffect> = None;
 
     effs.into_iter()
         .fold(INIT, |a, e| match (a, e) {
@@ -159,9 +159,9 @@ mod tests {
 
     #[test]
     fn test_combine_non_strict() {
-        fn check<I>(effs: I, expected: Effect)
+        fn check<I>(effs: I, expected: ComputedEffect)
         where
-            I: IntoIterator<Item = Effect>,
+            I: IntoIterator<Item = ComputedEffect>,
         {
             assert_eq!(combine_non_strict(effs), expected);
         }
@@ -185,9 +185,9 @@ mod tests {
 
     #[test]
     fn test_combine_strict() {
-        fn check<I>(effs: I, expected: Effect)
+        fn check<I>(effs: I, expected: ComputedEffect)
         where
-            I: IntoIterator<Item = Effect>,
+            I: IntoIterator<Item = ComputedEffect>,
         {
             assert_eq!(combine_strict(effs), expected);
         }
