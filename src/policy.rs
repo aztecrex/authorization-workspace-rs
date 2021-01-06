@@ -1,4 +1,4 @@
-use super::authorization::*;
+use super::effect::*;
 use super::dependent_effect::*;
 
 pub trait ResourceMatch {

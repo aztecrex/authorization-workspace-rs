@@ -16,7 +16,7 @@ pub enum Effect {
 /// # Example
 ///
 /// ```
-/// use authorization_core::authorization::*;
+/// use authorization_core::effect::*;
 /// use Effect::*;
 ///
 /// assert_eq!(authorized(Some(ALLOW)), true);
@@ -38,7 +38,7 @@ pub fn authorized(eff: Option<Effect>) -> bool {
 /// in silence.
 ///
 /// ```
-/// use authorization_core::authorization::*;
+/// use authorization_core::effect::*;
 /// use Effect::*;
 ///
 /// // empty is silence
@@ -79,7 +79,7 @@ where
 /// is silence.
 ///
 /// ```
-/// use authorization_core::authorization::*;
+/// use authorization_core::effect::*;
 /// use Effect::*;
 ///
 /// // empty is silence

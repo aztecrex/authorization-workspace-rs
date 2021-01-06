@@ -1,4 +1,4 @@
-pub mod authorization;
+pub mod effect;
 pub mod condition;
 pub mod dependent_effect;
 pub mod policy;

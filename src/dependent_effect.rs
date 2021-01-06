@@ -1,6 +1,6 @@
 //! Effects that depend on environmental conditions
 
-use super::authorization::*;
+use super::effect::*;
 use super::condition::*;
 
 ///  A dependent authorization. An effect is evaluated in the context of
@@ -17,10 +17,10 @@ pub enum DependentEffect<CExp> {
     /// evaluates to `Ok(Some(true))` in the environment.
     Atomic(Effect, CExp),
     /// Combines multiple effects for  single principal. It is evaluated using
-    /// `authorization_core::authorization::combine_non_strict(_)`
+    /// `authorization_core::effect::combine_non_strict(_)`
     Aggregate(Vec<DependentEffect<CExp>>),
     /// Combines the effects of multiple principals. It is evaluated using
-    /// `authorization_core::authorization::combine_strict(_)`
+    /// `authorization_core::effect::combine_strict(_)`
     Disjoint(Vec<DependentEffect<CExp>>),
 }
 
