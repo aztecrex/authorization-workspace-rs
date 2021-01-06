@@ -1,5 +1,5 @@
-use super::effect::*;
 use super::dependent_effect::*;
+use super::effect::*;
 
 pub trait ResourceMatch {
     type Resource;
@@ -40,9 +40,9 @@ where
             match self {
                 Conditional(_, _, eff, cond) => DependentEffect::Atomic(eff, cond),
                 Unconditional(_, _, eff) => DependentEffect::Fixed(eff),
-                Aggregate(ts) => {
-                    DependentEffect::Aggregate(ts.into_iter().map(|t| t.apply(resource, action)).collect())
-                }
+                Aggregate(ts) => DependentEffect::Aggregate(
+                    ts.into_iter().map(|t| t.apply(resource, action)).collect(),
+                ),
             }
         } else {
             DependentEffect::Silent

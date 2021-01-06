@@ -1,7 +1,7 @@
 //! Effects that depend on environmental conditions
 
 use super::effect::*;
-use super::condition::*;
+use super::environment::*;
 
 ///  A dependent authorization. An effect is evaluated in the context of
 /// an environment to produce an `Effect`.
@@ -379,7 +379,8 @@ mod tests {
 
     #[test]
     fn test_resolve_disjoint_all_silent() {
-        let effect = DependentEffect::Disjoint(vec![DependentEffect::Silent, DependentEffect::Silent]);
+        let effect =
+            DependentEffect::Disjoint(vec![DependentEffect::Silent, DependentEffect::Silent]);
 
         let actual = effect.resolve(&TestEnv);
 
@@ -389,7 +390,8 @@ mod tests {
     #[test]
     fn test_resolve_disjoint_error() {
         use DependentEffect::*;
-        let effect = DependentEffect::Disjoint(vec![Fixed(ALLOW), Atomic(ALLOW, TestExpression::Error)]);
+        let effect =
+            DependentEffect::Disjoint(vec![Fixed(ALLOW), Atomic(ALLOW, TestExpression::Error)]);
 
         let actual = effect.resolve(&TestEnv);
 
