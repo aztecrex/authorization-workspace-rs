@@ -37,8 +37,8 @@ mod tests {
 
     use super::*;
 
-    /* Don't care that these are real matchers and conditions. just need something to verify the move
-    from template to policy
+    /* Don't care that these are real matchers and conditions. just need something to verify
+     * the conversion from template to policy
      */
     #[derive(Debug, PartialEq, Eq, Clone)]
     struct RMatch(&'static str);
