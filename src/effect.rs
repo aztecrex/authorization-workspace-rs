@@ -10,6 +10,23 @@ pub enum Effect {
     DENY,
 }
 
+/// Determine if an optional effect denotes authorization. `Some(ALLOW)` is the
+/// only final result denoting authorization.
+///
+/// # Example
+///
+/// ```
+/// use authorization_core::effect::*;
+/// use Effect::*;
+///
+/// assert_eq!(authorized(Some(ALLOW)), true);
+/// assert_eq!(authorized(Some(DENY)), false);
+/// assert_eq!(authorized(None), false);
+/// ```
+pub fn authorized(eff: Option<Effect>) -> bool {
+    eff == Some(Effect::ALLOW)
+}
+
 /// Combine multiple optional effects in non-strict fashion. i.e. where combining
 /// can result in silence. This function returns silence iff the argument is empty or
 /// contains only silence. Otherwise, it returns `Some(ALLOW)` iff all non-silent
@@ -104,6 +121,21 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_authorized_allow() {
+        assert_eq!(authorized(Some(Effect::ALLOW)), true);
+    }
+
+    #[test]
+    fn test_authorized_deny() {
+        assert_eq!(authorized(Some(Effect::DENY)), false);
+    }
+
+    #[test]
+    fn test_authorized_silent() {
+        assert_eq!(authorized(None), false);
+    }
 
     #[test]
     fn test_combine_non_strict() {
