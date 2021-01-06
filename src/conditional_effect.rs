@@ -9,11 +9,11 @@ use super::condition::*;
 pub enum ConditionalEffect<CExp> {
     /// Unconditional silence. Resolves to `None` in any environment.
     Silent,
-    /// Unconditional effect. Resolves to `Some(Effect)` in any environment.
-    Fixed(Effect),
-    /// Basic conditional effect. With respect to an environment, Resolves to `Some(Effect)` iff its condition
+    /// Unconditional effect. Resolves to `Some(Authorization)` in any environment.
+    Fixed(Authorization),
+    /// Basic conditional effect. With respect to an environment, Resolves to `Some(Authorization)` iff its condition
     /// evaluates to `Ok(Some(true))` in the environment.
-    Atomic(Effect, CExp),
+    Atomic(Authorization, CExp),
     /// Multiple policy aggregate. It resolves by resolving then folding its constituents
     /// according to `effect::resolve
     Aggregate(Vec<ConditionalEffect<CExp>>),
@@ -21,7 +21,7 @@ pub enum ConditionalEffect<CExp> {
 }
 
 impl<CExp> ConditionalEffect<CExp> {
-    pub fn resolve<Env>(&self, environment: &Env) -> Result<Option<Effect>, Env::Err>
+    pub fn resolve<Env>(&self, environment: &Env) -> Result<Option<Authorization>, Env::Err>
     where
         Env: Environment<CExp = CExp>,
     {
@@ -38,14 +38,14 @@ impl<CExp> ConditionalEffect<CExp> {
             }
             Fixed(perm) => Ok(Some(*perm)),
             Aggregate(perms) => {
-                let resolved: Result<Vec<Option<Effect>>, Env::Err> =
+                let resolved: Result<Vec<Option<Authorization>>, Env::Err> =
                     perms.iter().map(|p| p.resolve(environment)).collect();
                 let resolved = resolved?;
                 let resolved = combine_non_strict(resolved);
                 Ok(resolved)
             }
             Disjoint(effs) => {
-                let resolved: Result<Vec<Option<Effect>>, Env::Err> =
+                let resolved: Result<Vec<Option<Authorization>>, Env::Err> =
                     effs.into_iter().map(|p| p.resolve(environment)).collect();
                 let resolved = resolved?;
                 let resolved = combine_strict(resolved);
@@ -59,7 +59,7 @@ impl<CExp> ConditionalEffect<CExp> {
 pub fn resolve_all<'a, CExp: 'a, Env>(
     perms: impl Iterator<Item = &'a ConditionalEffect<CExp>>,
     environment: &Env,
-) -> Result<Vec<Option<Effect>>, Env::Err>
+) -> Result<Vec<Option<Authorization>>, Env::Err>
 where
     Env: Environment<CExp = CExp>,
 {
@@ -103,7 +103,7 @@ mod tests {
         }
     }
 
-    use Effect::*;
+    use Authorization::*;
 
     #[test]
     fn resolve_silent() {
@@ -116,25 +116,25 @@ mod tests {
 
     #[test]
     fn resolve_atomic_allow_match() {
-        let perm = ConditionalEffect::Atomic(Effect::ALLOW, TestExpression::Match);
+        let perm = ConditionalEffect::Atomic(Authorization::ALLOW, TestExpression::Match);
 
         let actual = perm.resolve(&TestEnv);
 
-        assert_eq!(actual, Ok(Some(Effect::ALLOW)));
+        assert_eq!(actual, Ok(Some(Authorization::ALLOW)));
     }
 
     #[test]
     fn resolve_atomic_deny_match() {
-        let perm = ConditionalEffect::Atomic(Effect::DENY, TestExpression::Match);
+        let perm = ConditionalEffect::Atomic(Authorization::DENY, TestExpression::Match);
 
         let actual = perm.resolve(&TestEnv);
 
-        assert_eq!(actual, Ok(Some(Effect::DENY)));
+        assert_eq!(actual, Ok(Some(Authorization::DENY)));
     }
 
     #[test]
     fn resolve_atomic_allow_miss() {
-        let perm = ConditionalEffect::Atomic(Effect::ALLOW, TestExpression::Miss);
+        let perm = ConditionalEffect::Atomic(Authorization::ALLOW, TestExpression::Miss);
 
         let actual = perm.resolve(&TestEnv);
 
@@ -143,7 +143,7 @@ mod tests {
 
     #[test]
     fn resolve_atomic_deny_miss() {
-        let perm = ConditionalEffect::Atomic(Effect::DENY, TestExpression::Miss);
+        let perm = ConditionalEffect::Atomic(Authorization::DENY, TestExpression::Miss);
 
         let actual = perm.resolve(&TestEnv);
 
@@ -152,7 +152,7 @@ mod tests {
 
     #[test]
     fn resolve_atomic_error() {
-        let perm = ConditionalEffect::Atomic(Effect::ALLOW, TestExpression::Error);
+        let perm = ConditionalEffect::Atomic(Authorization::ALLOW, TestExpression::Error);
 
         let actual = perm.resolve(&TestEnv);
 
@@ -186,7 +186,7 @@ mod tests {
 
         let actual = perm.resolve(&TestEnv);
 
-        let expect: Result<Vec<Option<Effect>>, ()> =
+        let expect: Result<Vec<Option<Authorization>>, ()> =
             config.into_iter().map(|e| e.resolve(&TestEnv)).collect();
         let expect = expect.map(combine_non_strict);
 
@@ -406,7 +406,7 @@ mod tests {
 
             let actual = eff.resolve(&TestEnv);
 
-            let expected: Result<Vec<Option<Effect>>, ()> =
+            let expected: Result<Vec<Option<Authorization>>, ()> =
                 effs.into_iter().map(|e| e.resolve(&TestEnv)).collect();
             let expected = expected.map(combine_strict);
 

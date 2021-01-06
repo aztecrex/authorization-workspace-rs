@@ -3,7 +3,7 @@
 
 /// Result of an authorization inquiry
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Effect {
+pub enum Authorization {
     /// Authorized.
     ALLOW,
     /// Not authorized.
@@ -17,14 +17,14 @@ pub enum Effect {
 ///
 /// ```
 /// use authorization_core::authorization::*;
-/// use Effect::*;
+/// use Authorization::*;
 ///
 /// assert_eq!(authorized(Some(ALLOW)), true);
 /// assert_eq!(authorized(Some(DENY)), false);
 /// assert_eq!(authorized(None), false);
 /// ```
-pub fn authorized(eff: Option<Effect>) -> bool {
-    eff == Some(Effect::ALLOW)
+pub fn authorized(eff: Option<Authorization>) -> bool {
+    eff == Some(Authorization::ALLOW)
 }
 
 /// Combine multiple optional effects in non-strict fashion. i.e. where combining
@@ -39,7 +39,7 @@ pub fn authorized(eff: Option<Effect>) -> bool {
 ///
 /// ```
 /// use authorization_core::authorization::*;
-/// use Effect::*;
+/// use Authorization::*;
 ///
 /// // empty is silence
 /// assert_eq!(None, combine_non_strict(Vec::default()));
@@ -55,11 +55,11 @@ pub fn authorized(eff: Option<Effect>) -> bool {
 /// assert_eq!(Some(DENY), combine_non_strict(vec![Some(ALLOW), Some(DENY), Some(ALLOW)]));
 /// assert_eq!(Some(ALLOW), combine_non_strict(vec![Some(ALLOW), Some(ALLOW), Some(ALLOW)]));
 /// ```
-pub fn combine_non_strict<I>(effs: I) -> Option<Effect>
+pub fn combine_non_strict<I>(effs: I) -> Option<Authorization>
 where
-    I: IntoIterator<Item = Option<Effect>>,
+    I: IntoIterator<Item = Option<Authorization>>,
 {
-    use Effect::*;
+    use Authorization::*;
 
     effs.into_iter().fold(None, |a, e| match (a, e) {
         (None, x) => x,
@@ -80,7 +80,7 @@ where
 ///
 /// ```
 /// use authorization_core::authorization::*;
-/// use Effect::*;
+/// use Authorization::*;
 ///
 /// // empty is silence
 /// assert_eq!(None, combine_strict(Vec::default()));
@@ -96,16 +96,16 @@ where
 /// assert_eq!(Some(DENY), combine_strict(vec![Some(ALLOW), Some(DENY), Some(ALLOW)]));
 /// assert_eq!(Some(ALLOW), combine_strict(vec![Some(ALLOW), Some(ALLOW), Some(ALLOW)]));
 /// ```
-pub fn combine_strict<I>(effs: I) -> Option<Effect>
+pub fn combine_strict<I>(effs: I) -> Option<Authorization>
 where
-    I: IntoIterator<Item = Option<Effect>>,
+    I: IntoIterator<Item = Option<Authorization>>,
 {
-    use Effect::*;
+    use Authorization::*;
 
-    const O_INIT: Option<Option<Effect>> = None;
-    const O_SILENCE: Option<Effect> = None;
-    const O_ALLOW: Option<Effect> = Some(ALLOW);
-    const O_DENY: Option<Effect> = Some(DENY);
+    const O_INIT: Option<Option<Authorization>> = None;
+    const O_SILENCE: Option<Authorization> = None;
+    const O_ALLOW: Option<Authorization> = Some(ALLOW);
+    const O_DENY: Option<Authorization> = Some(DENY);
 
     effs.into_iter()
         .fold(O_INIT, |a, e| match (a, e) {
@@ -124,12 +124,12 @@ mod tests {
 
     #[test]
     fn test_authorized_allow() {
-        assert_eq!(authorized(Some(Effect::ALLOW)), true);
+        assert_eq!(authorized(Some(Authorization::ALLOW)), true);
     }
 
     #[test]
     fn test_authorized_deny() {
-        assert_eq!(authorized(Some(Effect::DENY)), false);
+        assert_eq!(authorized(Some(Authorization::DENY)), false);
     }
 
     #[test]
@@ -139,10 +139,10 @@ mod tests {
 
     #[test]
     fn test_combine_non_strict() {
-        use Effect::*;
-        fn check<I>(effs: I, expected: Option<Effect>)
+        use Authorization::*;
+        fn check<I>(effs: I, expected: Option<Authorization>)
         where
-            I: IntoIterator<Item = Option<Effect>>,
+            I: IntoIterator<Item = Option<Authorization>>,
         {
             assert_eq!(combine_non_strict(effs), expected);
         }
@@ -169,10 +169,10 @@ mod tests {
 
     #[test]
     fn test_combine_strict() {
-        use Effect::*;
-        fn check<I>(effs: I, expected: Option<Effect>)
+        use Authorization::*;
+        fn check<I>(effs: I, expected: Option<Authorization>)
         where
-            I: IntoIterator<Item = Option<Effect>>,
+            I: IntoIterator<Item = Option<Authorization>>,
         {
             assert_eq!(combine_strict(effs), expected);
         }

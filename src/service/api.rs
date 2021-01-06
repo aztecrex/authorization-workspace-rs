@@ -16,5 +16,5 @@ pub trait Query {
         &self,
         principal: &Principal<Self::PId>,
         query: dyn Iterator<Item = (Self::Resource, Self::Action)>,
-    ) -> Result<Vec<((Self::Resource, Self::Action), Effect)>, Self::Err>;
+    ) -> Result<Vec<((Self::Resource, Self::Action), Authorization)>, Self::Err>;
 }
