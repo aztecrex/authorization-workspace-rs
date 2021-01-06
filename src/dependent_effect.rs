@@ -4,18 +4,18 @@ use super::effect::*;
 use super::environment::*;
 
 ///  A dependent authorization. An effect is evaluated in the context of
-/// an environment to produce an `Effect`.
+/// an environment to produce an `Permission`.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum DependentEffect<CExp> {
     /// Unconditional silence. Resolves to `None` in any environment.
     Silent,
 
-    /// Unconditional effect. Resolves to `Some(Effect)` in any environment.
-    Fixed(Effect),
+    /// Unconditional effect. Resolves to `Some(Permission)` in any environment.
+    Fixed(Permission),
 
-    /// Basic conditional effect. With respect to an environment, Resolves to `Some(Effect)` iff its condition
+    /// Basic conditional effect. With respect to an environment, Resolves to `Some(Permission)` iff its condition
     /// evaluates to `Ok(Some(true))` in the environment.
-    Atomic(Effect, CExp),
+    Atomic(Permission, CExp),
     /// Combines multiple effects for  single principal. It is evaluated using
     /// `authorization_core::effect::combine_non_strict(_)`
     Aggregate(Vec<DependentEffect<CExp>>),
@@ -107,7 +107,7 @@ mod tests {
         }
     }
 
-    use Effect::*;
+    use Permission::*;
 
     #[test]
     fn resolve_silent() {
@@ -120,25 +120,25 @@ mod tests {
 
     #[test]
     fn resolve_atomic_allow_match() {
-        let perm = DependentEffect::Atomic(Effect::ALLOW, TestExpression::Match);
+        let perm = DependentEffect::Atomic(Permission::ALLOW, TestExpression::Match);
 
         let actual = perm.resolve(&TestEnv);
 
-        assert_eq!(actual, Ok(Some(Effect::ALLOW)));
+        assert_eq!(actual, Ok(Some(Permission::ALLOW)));
     }
 
     #[test]
     fn resolve_atomic_deny_match() {
-        let perm = DependentEffect::Atomic(Effect::DENY, TestExpression::Match);
+        let perm = DependentEffect::Atomic(Permission::DENY, TestExpression::Match);
 
         let actual = perm.resolve(&TestEnv);
 
-        assert_eq!(actual, Ok(Some(Effect::DENY)));
+        assert_eq!(actual, Ok(Some(Permission::DENY)));
     }
 
     #[test]
     fn resolve_atomic_allow_miss() {
-        let perm = DependentEffect::Atomic(Effect::ALLOW, TestExpression::Miss);
+        let perm = DependentEffect::Atomic(Permission::ALLOW, TestExpression::Miss);
 
         let actual = perm.resolve(&TestEnv);
 
@@ -147,7 +147,7 @@ mod tests {
 
     #[test]
     fn resolve_atomic_deny_miss() {
-        let perm = DependentEffect::Atomic(Effect::DENY, TestExpression::Miss);
+        let perm = DependentEffect::Atomic(Permission::DENY, TestExpression::Miss);
 
         let actual = perm.resolve(&TestEnv);
 
@@ -156,7 +156,7 @@ mod tests {
 
     #[test]
     fn resolve_atomic_error() {
-        let perm = DependentEffect::Atomic(Effect::ALLOW, TestExpression::Error);
+        let perm = DependentEffect::Atomic(Permission::ALLOW, TestExpression::Error);
 
         let actual = perm.resolve(&TestEnv);
 

@@ -1,4 +1,4 @@
-use super::effect::Effect;
+use super::effect::Permission;
 use super::policy::*;
 
 pub trait Template<T> {
@@ -8,8 +8,8 @@ pub trait Template<T> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PolicyTemplate<RMatchTpl, AMatch, CExp> {
-    Unconditional(RMatchTpl, AMatch, Effect),
-    Conditional(RMatchTpl, AMatch, Effect, CExp),
+    Unconditional(RMatchTpl, AMatch, Permission),
+    Conditional(RMatchTpl, AMatch, Permission, CExp),
     Aggregate(Vec<PolicyTemplate<RMatchTpl, AMatch, CExp>>),
 }
 
@@ -71,16 +71,16 @@ mod tests {
     fn test_nonempty_aggregate() {
         use PolicyTemplate::*;
         let elems = vec![
-            Unconditional(RMatchTpl, AMatch("a1"), Effect::ALLOW),
-            Unconditional(RMatchTpl, AMatch("a2"), Effect::DENY),
-            Conditional(RMatchTpl, AMatch("a3"), Effect::ALLOW, Cond("c1")),
-            Conditional(RMatchTpl, AMatch("a4"), Effect::DENY, Cond("c2")),
+            Unconditional(RMatchTpl, AMatch("a1"), Permission::ALLOW),
+            Unconditional(RMatchTpl, AMatch("a2"), Permission::DENY),
+            Conditional(RMatchTpl, AMatch("a3"), Permission::ALLOW, Cond("c1")),
+            Conditional(RMatchTpl, AMatch("a4"), Permission::DENY, Cond("c2")),
             Aggregate(vec![
                 Aggregate(vec![
-                    Unconditional(RMatchTpl, AMatch("a5"), Effect::ALLOW),
-                    Unconditional(RMatchTpl, AMatch("a6"), Effect::DENY),
-                    Conditional(RMatchTpl, AMatch("a7"), Effect::ALLOW, Cond("c3")),
-                    Conditional(RMatchTpl, AMatch("a8"), Effect::DENY, Cond("c4")),
+                    Unconditional(RMatchTpl, AMatch("a5"), Permission::ALLOW),
+                    Unconditional(RMatchTpl, AMatch("a6"), Permission::DENY),
+                    Conditional(RMatchTpl, AMatch("a7"), Permission::ALLOW, Cond("c3")),
+                    Conditional(RMatchTpl, AMatch("a8"), Permission::DENY, Cond("c4")),
                 ]),
                 Aggregate(vec![]),
             ]),
@@ -100,14 +100,14 @@ mod tests {
         let template = PolicyTemplate::<RMatchTpl, AMatch, Cond>::Unconditional(
             rmatch_tpl,
             AMatch("a"),
-            Effect::ALLOW,
+            Permission::ALLOW,
         );
 
         let actual = template.apply(&"xyz");
 
         assert_eq!(
             actual,
-            Policy::Unconditional(rmatch_tpl.apply(&"xyz"), AMatch("a"), Effect::ALLOW)
+            Policy::Unconditional(rmatch_tpl.apply(&"xyz"), AMatch("a"), Permission::ALLOW)
         );
     }
 
@@ -117,14 +117,14 @@ mod tests {
         let template = PolicyTemplate::<RMatchTpl, AMatch, Cond>::Unconditional(
             rmatch_tpl,
             AMatch("a"),
-            Effect::DENY,
+            Permission::DENY,
         );
 
         let actual = template.apply(&"xyz");
 
         assert_eq!(
             actual,
-            Policy::Unconditional(rmatch_tpl.apply(&"xyz"), AMatch("a"), Effect::DENY)
+            Policy::Unconditional(rmatch_tpl.apply(&"xyz"), AMatch("a"), Permission::DENY)
         );
     }
 
@@ -134,7 +134,7 @@ mod tests {
         let template = PolicyTemplate::<RMatchTpl, AMatch, Cond>::Conditional(
             rmatch_tpl,
             AMatch("a"),
-            Effect::ALLOW,
+            Permission::ALLOW,
             Cond("c"),
         );
 
@@ -145,7 +145,7 @@ mod tests {
             Policy::Conditional(
                 rmatch_tpl.apply(&"xyz"),
                 AMatch("a"),
-                Effect::ALLOW,
+                Permission::ALLOW,
                 Cond("c")
             )
         );
@@ -157,7 +157,7 @@ mod tests {
         let template = PolicyTemplate::<RMatchTpl, AMatch, Cond>::Conditional(
             rmatch_tpl,
             AMatch("a"),
-            Effect::DENY,
+            Permission::DENY,
             Cond("x"),
         );
 
@@ -168,7 +168,7 @@ mod tests {
             Policy::Conditional(
                 rmatch_tpl.apply(&"xyz"),
                 AMatch("a"),
-                Effect::DENY,
+                Permission::DENY,
                 Cond("x")
             )
         );

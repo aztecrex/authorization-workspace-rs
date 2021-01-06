@@ -13,8 +13,8 @@ pub trait ActionMatch {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Policy<RMatch, AMatch, CExp> {
-    Unconditional(RMatch, AMatch, Effect),
-    Conditional(RMatch, AMatch, Effect, CExp),
+    Unconditional(RMatch, AMatch, Permission),
+    Conditional(RMatch, AMatch, Permission, CExp),
     Aggregate(Vec<Policy<RMatch, AMatch, CExp>>),
 }
 
@@ -72,7 +72,7 @@ where
 mod tests {
 
     use super::*;
-    use Effect::*;
+    use Permission::*;
 
     pub struct Resource(&'static str);
     pub struct Action(&'static str);

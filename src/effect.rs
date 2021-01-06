@@ -3,126 +3,139 @@
 
 /// Definite authorization
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Effect {
+pub enum Permission {
     /// Authorized.
     ALLOW,
     /// Not authorized.
     DENY,
 }
 
-/// Potentially silent effect. Used in situations where a definite effect might no
-/// be determinable.
-pub type IndefiniteEffect = Option<Effect>;
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Default)]
+pub struct Effect(Option<Permission>);
 
-/// Undetermined effect. Used when definite effect cannot be determined.
-pub const SILENT: IndefiniteEffect = None;
+/// Authorization is not determined from a computation
+pub const SILENT: Effect = Effect(None);
 
-/// Determine if an authorization denotes authorization. `Some(ALLOW)` is the
-/// only final result denoting authorization.
-///
-/// # Example
-///
-/// ```
-/// use authorization_core::effect::*;
-/// use Effect::*;
-///
-/// assert_eq!(authorized(Some(ALLOW)), true);
-/// assert_eq!(authorized(Some(DENY)), false);
-/// assert_eq!(authorized(None), false);
-/// ```
-pub fn authorized(eff: IndefiniteEffect) -> bool {
-    eff == Some(Effect::ALLOW)
+/// Authorized
+pub const ALLOW: Effect = Effect(Some(Permission::ALLOW));
+
+/// Undauthorized
+pub const DENY: Effect = Effect(Some(Permission::DENY));
+
+impl Effect {
+    /// Determine if Effect authorizes access. The only effect that authorizes
+    /// access is `ALLOW`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use authorization_core::effect::*;
+    ///
+    /// assert_eq!(ALLOW.authorized(), true);
+    /// assert_eq!(DENY.authorized(), false);
+    /// assert_eq!(SILENT.authorized(), false);
+    /// ```
+    pub fn authorized(self) -> bool {
+        self == ALLOW
+    }
 }
 
-/// Combine multiple optional effects in non-strict fashion. i.e. where combining
-/// can result in silence. This function returns silence iff the argument is empty or
-/// contains only silence. Otherwise, it returns `Some(ALLOW)` iff all non-silent
-/// constituents are `Some(ALLOW)`.
+impl From<Permission> for Effect {
+    fn from(permission: Permission) -> Self {
+        Effect(Some(permission))
+    }
+}
+
+impl From<Option<Permission>> for Effect {
+    fn from(maybe_permission: Option<Permission>) -> Self {
+        Effect(maybe_permission)
+    }
+}
+
+/// Combine multiple optional effects in non-strict fashion. The result is
+/// `ALLOW` if and only if there is at least one `ALLOW` constituent and
+/// no `DENY` constituents.
 ///
-/// This is used when evaluating multiple applicable effects for a single principal. Non-
-/// applicable effects  (those resolving to silence) are ignored. If there are no
-/// applicable effects (none provide or all are silent), then combinaing them results
-/// in silence.
+/// This is used when evaluating multipl effects for a single principal. Total
+/// silence indicates unauthorized as does the presence of any `DENY`. But if
+/// at least one effect can be found to `ALLOW` and there are not results
+/// that are `DENY`, the principal is authorized.
+///
+/// # Examples
 ///
 /// ```
 /// use authorization_core::effect::*;
-/// use Effect::*;
 ///
 /// // empty is silence
-/// assert_eq!(None, combine_non_strict(Vec::default()));
+/// assert_eq!(SILENT, combine_non_strict(Vec::default()));
 ///
 /// // all silence is silence
-/// assert_eq!(None, combine_non_strict(vec![None, None]));
+/// assert_eq!(SILENT, combine_non_strict(vec![SILENT, SILENT]));
 ///
 /// // silence ignored
-/// assert_eq!(Some(ALLOW), combine_non_strict(vec![None, Some(ALLOW)]));
-/// assert_eq!(Some(DENY), combine_non_strict(vec![None, Some(DENY)]));
+/// assert_eq!(ALLOW, combine_non_strict(vec![SILENT, ALLOW]));
+/// assert_eq!(DENY, combine_non_strict(vec![SILENT, DENY]));
 ///
 /// // deny wins
-/// assert_eq!(Some(DENY), combine_non_strict(vec![Some(ALLOW), Some(DENY), Some(ALLOW)]));
-/// assert_eq!(Some(ALLOW), combine_non_strict(vec![Some(ALLOW), Some(ALLOW), Some(ALLOW)]));
+/// assert_eq!(DENY, combine_non_strict(vec![ALLOW, DENY, ALLOW]));
+/// assert_eq!(ALLOW, combine_non_strict(vec![ALLOW, ALLOW, ALLOW]));
 /// ```
-pub fn combine_non_strict<I>(effs: I) -> IndefiniteEffect
+pub fn combine_non_strict<I>(effs: I) -> Effect
 where
-    I: IntoIterator<Item = IndefiniteEffect>,
+    I: IntoIterator<Item = Effect>,
 {
-    use Effect::*;
-
-    effs.into_iter().fold(None, |a, e| match (a, e) {
-        (None, x) => x,
-        (x, None) => x,
-        (Some(ALLOW), Some(ALLOW)) => Some(ALLOW),
-        _ => Some(DENY),
+    effs.into_iter().fold(SILENT, |a, e| match (a, e) {
+        (SILENT, x) => x,
+        (x, SILENT) => x,
+        (ALLOW, ALLOW) => ALLOW,
+        _ => DENY,
     })
 }
 
-/// Combine multiple optional effects in strict fashion. i.e. combination always
-/// results in a non-silent effect.  This function returns `Some(ALLOW)` iff it is non-empty
-/// and every constituent is `Some(ALLOW)`. It returns silence (`None`) iff the argument is empty
-/// or any constituent is silent.
+/// Combine mutiple effects in strict fashion. The result is `ALLOW` if
+/// and only if there is at least one constituent effect and every consituent
+/// effect is `ALLOW`
 ///
-/// This is used to combine effects for multiple principals, granting the least
-/// common effect. If the effect for any principal is silent, then the overall effect
-/// is silence.
+/// As with non-strict, if there are no constituents, the result is `SILENT`.
+///
+/// This function is used to combine effects for composite principals where a result
+/// is determined for each atomic principal. In this case, access is authorized if
+/// and only if access is authorized for each atomic principal.
+///
+/// # Examles
 ///
 /// ```
 /// use authorization_core::effect::*;
-/// use Effect::*;
 ///
-/// // empty is silence
-/// assert_eq!(None, combine_strict(Vec::default()));
+/// // silence if no constituents
+/// assert_eq!(SILENT, combine_strict(Vec::default()));
 ///
 /// // all silence is silence
-/// assert_eq!(None, combine_strict(vec![None, None]));
+/// assert_eq!(SILENT, combine_strict(vec![SILENT, SILENT]));
 ///
 /// // silence wins
-/// assert_eq!(None, combine_strict(vec![None, Some(ALLOW)]));
-/// assert_eq!(None, combine_strict(vec![Some(DENY), None]));
+/// assert_eq!(SILENT, combine_strict(vec![SILENT, ALLOW]));
+/// assert_eq!(SILENT, combine_strict(vec![DENY, SILENT]));
 ///
-/// // if no silence, Some(DENY) wins
-/// assert_eq!(Some(DENY), combine_strict(vec![Some(ALLOW), Some(DENY), Some(ALLOW)]));
-/// assert_eq!(Some(ALLOW), combine_strict(vec![Some(ALLOW), Some(ALLOW), Some(ALLOW)]));
+/// // if no silence, DENY wins
+/// assert_eq!(DENY, combine_strict(vec![ALLOW, DENY, ALLOW]));
+/// assert_eq!(ALLOW, combine_strict(vec![ALLOW, ALLOW, ALLOW]));
 /// ```
-pub fn combine_strict<I>(effs: I) -> IndefiniteEffect
+pub fn combine_strict<I>(effs: I) -> Effect
 where
-    I: IntoIterator<Item = IndefiniteEffect>,
+    I: IntoIterator<Item = Effect>,
 {
-    use Effect::*;
-
-    const O_INIT: Option<IndefiniteEffect> = None;
-    const O_SILENCE: IndefiniteEffect = None;
-    const O_ALLOW: IndefiniteEffect = Some(ALLOW);
-    const O_DENY: IndefiniteEffect = Some(DENY);
+    const INIT: Option<Effect> = None;
 
     effs.into_iter()
-        .fold(O_INIT, |a, e| match (a, e) {
-            (O_INIT, x) => Some(x),
-            (Some(O_SILENCE), _) => Some(O_SILENCE),
-            (_, O_SILENCE) => Some(O_SILENCE),
-            (Some(O_ALLOW), O_ALLOW) => Some(O_ALLOW),
-            _ => Some(O_DENY),
+        .fold(INIT, |a, e| match (a, e) {
+            (INIT, x) => Some(x),
+            (Some(SILENT), _) => Some(SILENT),
+            (_, SILENT) => Some(SILENT),
+            (Some(ALLOW), ALLOW) => Some(ALLOW),
+            _ => Some(DENY),
         })
-        .unwrap_or(O_SILENCE)
+        .unwrap_or(SILENT)
 }
 
 #[cfg(test)]
@@ -131,73 +144,68 @@ mod tests {
 
     #[test]
     fn test_authorized_allow() {
-        assert_eq!(authorized(Some(Effect::ALLOW)), true);
+        assert_eq!(ALLOW.authorized(), true);
     }
 
     #[test]
     fn test_authorized_deny() {
-        assert_eq!(authorized(Some(Effect::DENY)), false);
+        assert_eq!(DENY.authorized(), false);
     }
 
     #[test]
     fn test_authorized_silent() {
-        assert_eq!(authorized(None), false);
+        assert_eq!(SILENT.authorized(), false);
     }
 
     #[test]
     fn test_combine_non_strict() {
-        use Effect::*;
-        fn check<I>(effs: I, expected: IndefiniteEffect)
+        fn check<I>(effs: I, expected: Effect)
         where
-            I: IntoIterator<Item = IndefiniteEffect>,
+            I: IntoIterator<Item = Effect>,
         {
             assert_eq!(combine_non_strict(effs), expected);
         }
 
-        check(vec![Some(DENY), Some(DENY), Some(DENY)], Some(DENY));
-        check(vec![Some(DENY), Some(DENY), Some(ALLOW)], Some(DENY));
-        check(vec![Some(DENY), Some(ALLOW), Some(DENY)], Some(DENY));
-        check(vec![Some(DENY), Some(ALLOW), Some(ALLOW)], Some(DENY));
-        check(vec![Some(ALLOW), Some(DENY), Some(DENY)], Some(DENY));
-        check(vec![Some(ALLOW), Some(DENY), Some(ALLOW)], Some(DENY));
-        check(vec![Some(ALLOW), Some(ALLOW), Some(DENY)], Some(DENY));
+        check(vec![DENY, DENY, DENY], DENY);
+        check(vec![DENY, DENY, ALLOW], DENY);
+        check(vec![DENY, ALLOW, DENY], DENY);
+        check(vec![DENY, ALLOW, ALLOW], DENY);
+        check(vec![ALLOW, DENY, DENY], DENY);
+        check(vec![ALLOW, DENY, ALLOW], DENY);
+        check(vec![ALLOW, ALLOW, DENY], DENY);
 
-        check(vec![Some(ALLOW), Some(ALLOW), Some(ALLOW)], Some(ALLOW));
+        check(vec![ALLOW, ALLOW, ALLOW], ALLOW);
 
-        check(vec![], None);
-        check(vec![None, None], None);
-        check(vec![None, Some(DENY), None, Some(DENY), None], Some(DENY));
-        check(vec![None, Some(DENY), None, Some(ALLOW), None], Some(DENY));
-        check(
-            vec![None, Some(ALLOW), None, Some(ALLOW), None],
-            Some(ALLOW),
-        );
+        check(vec![], SILENT);
+        check(vec![SILENT, SILENT], SILENT);
+        check(vec![SILENT, DENY, SILENT, DENY, SILENT], DENY);
+        check(vec![SILENT, DENY, SILENT, ALLOW, SILENT], DENY);
+        check(vec![SILENT, ALLOW, SILENT, ALLOW, SILENT], ALLOW);
     }
 
     #[test]
     fn test_combine_strict() {
-        use Effect::*;
-        fn check<I>(effs: I, expected: IndefiniteEffect)
+        fn check<I>(effs: I, expected: Effect)
         where
-            I: IntoIterator<Item = IndefiniteEffect>,
+            I: IntoIterator<Item = Effect>,
         {
             assert_eq!(combine_strict(effs), expected);
         }
 
-        check(vec![Some(DENY), Some(DENY), Some(DENY)], Some(DENY));
-        check(vec![Some(DENY), Some(DENY), Some(ALLOW)], Some(DENY));
-        check(vec![Some(DENY), Some(ALLOW), Some(DENY)], Some(DENY));
-        check(vec![Some(DENY), Some(ALLOW), Some(ALLOW)], Some(DENY));
-        check(vec![Some(ALLOW), Some(DENY), Some(DENY)], Some(DENY));
-        check(vec![Some(ALLOW), Some(DENY), Some(ALLOW)], Some(DENY));
-        check(vec![Some(ALLOW), Some(ALLOW), Some(DENY)], Some(DENY));
+        check(vec![DENY, DENY, DENY], DENY);
+        check(vec![DENY, DENY, ALLOW], DENY);
+        check(vec![DENY, ALLOW, DENY], DENY);
+        check(vec![DENY, ALLOW, ALLOW], DENY);
+        check(vec![ALLOW, DENY, DENY], DENY);
+        check(vec![ALLOW, DENY, ALLOW], DENY);
+        check(vec![ALLOW, ALLOW, DENY], DENY);
 
-        check(vec![Some(ALLOW), Some(ALLOW), Some(ALLOW)], Some(ALLOW));
+        check(vec![ALLOW, ALLOW, ALLOW], ALLOW);
 
-        check(vec![], None);
-        check(vec![None, None], None);
-        check(vec![None, Some(DENY), None, Some(DENY), None], None);
-        check(vec![None, Some(DENY), None, Some(ALLOW), None], None);
-        check(vec![None, Some(ALLOW), None, Some(ALLOW), None], None);
+        check(vec![], SILENT);
+        check(vec![SILENT, SILENT], SILENT);
+        check(vec![SILENT, DENY, SILENT, DENY, SILENT], SILENT);
+        check(vec![SILENT, DENY, SILENT, ALLOW, SILENT], SILENT);
+        check(vec![SILENT, ALLOW, SILENT, ALLOW, SILENT], SILENT);
     }
 }
