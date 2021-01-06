@@ -4,13 +4,14 @@ use super::effect::*;
 use super::environment::*;
 
 ///  A dependent authorization. An effect is evaluated in the context of
-/// an environment to produce an `Effect`.
+/// an environment to produce a `authorization_core::effect::ComputedEffect`.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum DependentEffect<CExp> {
     /// Unconditional silence. Resolves to `SILENT` in any environment.
     Silent,
 
-    /// Unconditional effect. Resolves to `Some(Effect)` in any environment.
+    /// Unconditional effect. Resolves by applying `Effect::into()` to the wrapped
+    /// value.
     Fixed(Effect),
 
     /// Basic conditional effect. With respect to an environment, Resolves to `Some(Effect)` iff its condition
@@ -25,6 +26,7 @@ pub enum DependentEffect<CExp> {
 }
 
 impl<CExp> DependentEffect<CExp> {
+    /// Evaluate dependent effect in an envionmental context.
     pub fn resolve<Env>(&self, environment: &Env) -> Result<ComputedEffect, Env::Err>
     where
         Env: Environment<CExp = CExp>,

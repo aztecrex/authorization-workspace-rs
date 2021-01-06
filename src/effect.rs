@@ -10,6 +10,10 @@ pub enum Effect {
     DENY,
 }
 
+/// Effect resulting from an authorization computation. Represents
+/// definite `Effect` with an additional value representing an undetermined
+/// (i.e. silent) effect. It is equivalent to `Option<Effect>` but defined
+/// as a newtype for synbolic clarity and for implementing standard traits.
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Default)]
 pub struct ComputedEffect(Option<Effect>);
 
