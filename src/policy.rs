@@ -23,6 +23,29 @@ pub trait ActionMatch {
     fn test(&self, action: &Self::Action) -> bool;
 }
 
+/// Trivial str resource
+pub struct StrResource<'a>(&'a str);
+
+/// Trivial str action
+pub struct StrAction<'a>(&'a str);
+
+/// Trivial str matcher
+pub struct StrMatcher<'a>(&'a str);
+
+impl<'a> ResourceMatch for StrMatcher<'a> {
+    type Resource = StrResource<'a>;
+    fn test(&self, resource: &Self::Resource) -> bool {
+        self.0 == resource.0
+    }
+}
+
+impl<'a> ActionMatch for StrMatcher<'a> {
+    type Action = StrAction<'a>;
+    fn test(&self, action: &Self::Action) -> bool {
+        self.0 == action.0
+    }
+}
+
 /// A configured authorization policy.
 ///
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -45,6 +68,7 @@ where
     AMatch: ActionMatch<Action = A>,
 {
     /// Determine if policy applies to a concrete resource and action.
+    ///
     pub fn applies(&self, resource: &R, action: &A) -> bool {
         use Policy::*;
 
@@ -126,6 +150,32 @@ mod tests {
             let Matcher(m) = self;
             v == m
         }
+    }
+
+    #[test]
+    fn test_str_matcher_resource() {
+        let matcher = StrMatcher("abc");
+        assert_eq!(
+            <StrMatcher as ResourceMatch>::test(&matcher, &StrResource("abc")),
+            true
+        );
+        assert_eq!(
+            <StrMatcher as ResourceMatch>::test(&matcher, &StrResource("xyz")),
+            false
+        );
+    }
+
+    #[test]
+    fn test_str_matcher_action() {
+        let matcher = StrMatcher("abc");
+        assert_eq!(
+            <StrMatcher as ActionMatch>::test(&matcher, &StrAction("abc")),
+            true
+        );
+        assert_eq!(
+            <StrMatcher as ActionMatch>::test(&matcher, &StrAction("xyz")),
+            false
+        );
     }
 
     #[test]
