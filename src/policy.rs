@@ -1,6 +1,5 @@
 use super::dependent_effect::*;
 use super::effect::*;
-
 pub trait ResourceMatch {
     type Resource;
     fn test(&self, resource: &Self::Resource) -> bool;
@@ -13,8 +12,8 @@ pub trait ActionMatch {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Policy<RMatch, AMatch, CExp> {
-    Unconditional(RMatch, AMatch, Permission),
-    Conditional(RMatch, AMatch, Permission, CExp),
+    Unconditional(RMatch, AMatch, Effect),
+    Conditional(RMatch, AMatch, Effect, CExp),
     Aggregate(Vec<Policy<RMatch, AMatch, CExp>>),
 }
 
@@ -72,7 +71,6 @@ where
 mod tests {
 
     use super::*;
-    use Permission::*;
 
     pub struct Resource(&'static str);
     pub struct Action(&'static str);
@@ -104,25 +102,25 @@ mod tests {
 
     #[test]
     fn test_unconditional_match_allow() {
-        let policy = Policy::<_, _, ()>::Unconditional(MATCH_R, MATCH_A, ALLOW);
+        let policy = Policy::<_, _, ()>::Unconditional(MATCH_R, MATCH_A, Effect::ALLOW);
 
         let actual = policy.apply(&Resource("r"), &Action("a"));
 
-        assert_eq!(actual, DependentEffect::Fixed(ALLOW));
+        assert_eq!(actual, DependentEffect::Fixed(Effect::ALLOW));
     }
 
     #[test]
     fn test_unconditional_match_deny() {
-        let policy = Policy::<_, _, ()>::Unconditional(MATCH_R, MATCH_A, DENY);
+        let policy = Policy::<_, _, ()>::Unconditional(MATCH_R, MATCH_A, Effect::DENY);
 
         let actual = policy.apply(&Resource("r"), &Action("a"));
 
-        assert_eq!(actual, DependentEffect::Fixed(DENY));
+        assert_eq!(actual, DependentEffect::Fixed(Effect::DENY));
     }
 
     #[test]
     fn test_unconditional_unmatched_resource() {
-        let policy = Policy::<_, _, ()>::Unconditional(MATCH_MISS, MATCH_A, DENY);
+        let policy = Policy::<_, _, ()>::Unconditional(MATCH_MISS, MATCH_A, Effect::DENY);
 
         let actual = policy.apply(&Resource("r"), &Action("a"));
 
@@ -131,7 +129,7 @@ mod tests {
 
     #[test]
     fn test_unconditional_unmatched_action() {
-        let policy = Policy::<_, _, ()>::Unconditional(MATCH_R, MATCH_MISS, DENY);
+        let policy = Policy::<_, _, ()>::Unconditional(MATCH_R, MATCH_MISS, Effect::DENY);
 
         let actual = policy.apply(&Resource("r"), &Action("a"));
 
@@ -140,11 +138,11 @@ mod tests {
 
     #[test]
     fn test_conditional_matched_allow() {
-        let policy = Policy::Conditional(MATCH_R, MATCH_A, ALLOW, ());
+        let policy = Policy::Conditional(MATCH_R, MATCH_A, Effect::ALLOW, ());
 
         let actual = policy.apply(&Resource("r"), &Action("a"));
 
-        assert_eq!(actual, DependentEffect::Atomic(ALLOW, ()));
+        assert_eq!(actual, DependentEffect::Atomic(Effect::ALLOW, ()));
     }
 
     #[test]
@@ -154,23 +152,23 @@ mod tests {
         let match_a1 = Matcher("a1");
         let match_a2 = Matcher("a2");
         let terms = vec![
-            Policy::Conditional(match_r1, match_a1, ALLOW, ()),
-            Policy::Conditional(match_r2, match_a1, ALLOW, ()),
-            Policy::Conditional(match_r1, match_a2, ALLOW, ()),
-            Policy::Conditional(match_r2, match_a2, ALLOW, ()),
-            Policy::Unconditional(match_r1, match_a1, ALLOW),
-            Policy::Unconditional(match_r2, match_a1, ALLOW),
-            Policy::Unconditional(match_r1, match_a2, ALLOW),
-            Policy::Unconditional(match_r2, match_a2, ALLOW),
+            Policy::Conditional(match_r1, match_a1, Effect::ALLOW, ()),
+            Policy::Conditional(match_r2, match_a1, Effect::ALLOW, ()),
+            Policy::Conditional(match_r1, match_a2, Effect::ALLOW, ()),
+            Policy::Conditional(match_r2, match_a2, Effect::ALLOW, ()),
+            Policy::Unconditional(match_r1, match_a1, Effect::ALLOW),
+            Policy::Unconditional(match_r2, match_a1, Effect::ALLOW),
+            Policy::Unconditional(match_r1, match_a2, Effect::ALLOW),
+            Policy::Unconditional(match_r2, match_a2, Effect::ALLOW),
             Policy::Aggregate(vec![
-                Policy::Conditional(match_r1, match_a1, ALLOW, ()),
-                Policy::Conditional(match_r2, match_a1, ALLOW, ()),
-                Policy::Conditional(match_r1, match_a2, ALLOW, ()),
-                Policy::Conditional(match_r2, match_a2, ALLOW, ()),
-                Policy::Unconditional(match_r1, match_a1, ALLOW),
-                Policy::Unconditional(match_r2, match_a1, ALLOW),
-                Policy::Unconditional(match_r1, match_a2, ALLOW),
-                Policy::Unconditional(match_r2, match_a2, ALLOW),
+                Policy::Conditional(match_r1, match_a1, Effect::ALLOW, ()),
+                Policy::Conditional(match_r2, match_a1, Effect::ALLOW, ()),
+                Policy::Conditional(match_r1, match_a2, Effect::ALLOW, ()),
+                Policy::Conditional(match_r2, match_a2, Effect::ALLOW, ()),
+                Policy::Unconditional(match_r1, match_a1, Effect::ALLOW),
+                Policy::Unconditional(match_r2, match_a1, Effect::ALLOW),
+                Policy::Unconditional(match_r1, match_a2, Effect::ALLOW),
+                Policy::Unconditional(match_r2, match_a2, Effect::ALLOW),
             ]),
         ];
         let policy = Policy::Aggregate(terms.clone());
@@ -190,23 +188,23 @@ mod tests {
     #[test]
     fn test_disjoint() {
         let policies = vec![
-            Policy::Conditional(MATCH_R, MATCH_A, ALLOW, 18),
-            Policy::Conditional(MATCH_R, MATCH_A, DENY, 19),
-            Policy::Unconditional(MATCH_R, MATCH_A, ALLOW),
-            Policy::Unconditional(MATCH_R, MATCH_A, DENY),
-            Policy::Conditional(MATCH_R, MATCH_MISS, ALLOW, 20),
-            Policy::Conditional(MATCH_MISS, MATCH_A, DENY, 21),
-            Policy::Unconditional(MATCH_MISS, MATCH_A, ALLOW),
-            Policy::Unconditional(MATCH_R, MATCH_MISS, DENY),
+            Policy::Conditional(MATCH_R, MATCH_A, Effect::ALLOW, 18),
+            Policy::Conditional(MATCH_R, MATCH_A, Effect::DENY, 19),
+            Policy::Unconditional(MATCH_R, MATCH_A, Effect::ALLOW),
+            Policy::Unconditional(MATCH_R, MATCH_A, Effect::DENY),
+            Policy::Conditional(MATCH_R, MATCH_MISS, Effect::ALLOW, 20),
+            Policy::Conditional(MATCH_MISS, MATCH_A, Effect::DENY, 21),
+            Policy::Unconditional(MATCH_MISS, MATCH_A, Effect::ALLOW),
+            Policy::Unconditional(MATCH_R, MATCH_MISS, Effect::DENY),
             Policy::Aggregate(vec![Policy::Aggregate(vec![
-                Policy::Conditional(MATCH_R, MATCH_A, ALLOW, 18),
-                Policy::Conditional(MATCH_R, MATCH_A, DENY, 19),
-                Policy::Unconditional(MATCH_R, MATCH_A, ALLOW),
-                Policy::Unconditional(MATCH_R, MATCH_A, DENY),
-                Policy::Conditional(MATCH_R, MATCH_MISS, ALLOW, 20),
-                Policy::Conditional(MATCH_MISS, MATCH_A, DENY, 21),
-                Policy::Unconditional(MATCH_MISS, MATCH_A, ALLOW),
-                Policy::Unconditional(MATCH_R, MATCH_MISS, DENY),
+                Policy::Conditional(MATCH_R, MATCH_A, Effect::ALLOW, 18),
+                Policy::Conditional(MATCH_R, MATCH_A, Effect::DENY, 19),
+                Policy::Unconditional(MATCH_R, MATCH_A, Effect::ALLOW),
+                Policy::Unconditional(MATCH_R, MATCH_A, Effect::DENY),
+                Policy::Conditional(MATCH_R, MATCH_MISS, Effect::ALLOW, 20),
+                Policy::Conditional(MATCH_MISS, MATCH_A, Effect::DENY, 21),
+                Policy::Unconditional(MATCH_MISS, MATCH_A, Effect::ALLOW),
+                Policy::Unconditional(MATCH_R, MATCH_MISS, Effect::DENY),
             ])]),
         ];
         let r = Resource("r");
