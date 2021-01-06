@@ -1,15 +1,30 @@
+//! Policy generation
+//!
+//! Templates allow parameterized policies based on modifying resources. They allow for things
+//! like symbolic roles that can be scoped to resources.
+
 use super::effect::Effect;
 use super::policy::*;
 
+/// General parameterization trait
 pub trait Template<T> {
+    /// The formal argumeht type, use product types for multiple parameters
     type Param;
+
+    /// Generate gtarget from parameter.
     fn apply(self, p: &Self::Param) -> T;
 }
 
+/// Template to generate a policy. It asumes that parameterization is equivalent to generating
+/// a resource matcher from a template and associating additional policy components as required
+/// by each variant.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PolicyTemplate<RMatchTpl, AMatch, CExp> {
+    /// Generates a `Policy::Unconditional(_)` by using a resource matcher template
     Unconditional(RMatchTpl, AMatch, Effect),
+    /// generates a `Policy::Conditional(_)`  by using a resource matcher template
     Conditional(RMatchTpl, AMatch, Effect, CExp),
+    /// generates a `Policy::Aggregate` by applying the parameter to all of its consituents
     Aggregate(Vec<PolicyTemplate<RMatchTpl, AMatch, CExp>>),
 }
 
@@ -19,6 +34,7 @@ where
     RMatchTpl: Template<RMatch, Param = Param>,
 {
     type Param = Param;
+
     fn apply(self, p: &Self::Param) -> Policy<RMatch, AMatch, CExp> {
         use PolicyTemplate::*;
         match self {
