@@ -6,7 +6,7 @@ pub enum Principal<Id> {
     Compound(Vec<Id>),
 }
 
-pub trait Authorization {
+pub trait Query {
     type PId;
     type Err;
     type Resource;
