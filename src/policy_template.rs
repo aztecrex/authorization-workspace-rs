@@ -8,10 +8,10 @@ use super::policy::*;
 
 /// General parameterization trait
 pub trait Template<T> {
-    /// The formal argumeht type, use product types for multiple parameters
+    /// The formal argument type, use product types for multiple parameters
     type Param;
 
-    /// Generate gtarget from parameter.
+    /// Generate target from parameter.
     fn apply(self, p: &Self::Param) -> T;
 }
 
