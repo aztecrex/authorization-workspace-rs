@@ -3,7 +3,7 @@
 use super::effect::*;
 use super::environment::*;
 
-///  A dependent authorization. An effect is evaluated in the context of
+///  A dependent authorization effect. A dependent effect is evaluated in the context of
 /// an environment to produce a `authorization_core::effect::ComputedEffect`.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum DependentEffect<CExp> {
