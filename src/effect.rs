@@ -3,6 +3,7 @@
 
 /// Result of an authorization inquiry
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[deprecated()]
 pub enum Effect {
     /// Authorization is granted
     ALLOW,
@@ -11,11 +12,13 @@ pub enum Effect {
     DENY,
 }
 
+/// Result of authorization inquiry.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Effect2 {
+    // Authorized.
     ALLOW,
+    // Not authorized.
     DENY,
-    SILENT,
 }
 
 /// Combine two effects for evaluating an aggregate. Result is `Effect::ALLOW` iff
@@ -57,30 +60,30 @@ pub fn reduce_optional_effects(e1: Option<Effect>, e2: Option<Effect>) -> Option
 /// use Effect2::*;
 ///
 /// // empty is silence
-/// assert_eq!(SILENT, combine_non_strict(Vec::default()));
+/// assert_eq!(None, combine_non_strict(Vec::default()));
 ///
 /// // all silence is silence
-/// assert_eq!(SILENT, combine_non_strict(vec![SILENT, SILENT]));
+/// assert_eq!(None, combine_non_strict(vec![None, None]));
 ///
 /// // silence ignored
-/// assert_eq!(ALLOW, combine_non_strict(vec![SILENT, ALLOW]));
-/// assert_eq!(DENY, combine_non_strict(vec![SILENT, DENY]));
+/// assert_eq!(Some(ALLOW), combine_non_strict(vec![None, Some(ALLOW)]));
+/// assert_eq!(Some(DENY), combine_non_strict(vec![None, Some(DENY)]));
 ///
 /// // deny wins
-/// assert_eq!(DENY, combine_non_strict(vec![ALLOW, DENY, ALLOW]));
-/// assert_eq!(ALLOW, combine_non_strict(vec![ALLOW, ALLOW, ALLOW]));
+/// assert_eq!(Some(DENY), combine_non_strict(vec![Some(ALLOW), Some(DENY), Some(ALLOW)]));
+/// assert_eq!(Some(ALLOW), combine_non_strict(vec![Some(ALLOW), Some(ALLOW), Some(ALLOW)]));
 /// ```
-pub fn combine_non_strict<I>(effs: I) -> Effect2
+pub fn combine_non_strict<I>(effs: I) -> Option<Effect2>
 where
-    I: IntoIterator<Item = Effect2>,
+    I: IntoIterator<Item = Option<Effect2>>,
 {
     use Effect2::*;
 
-    effs.into_iter().fold(SILENT, |a, e| match (a, e) {
-        (SILENT, x) => x,
-        (x, SILENT) => x,
-        (ALLOW, ALLOW) => ALLOW,
-        _ => DENY,
+    effs.into_iter().fold(None, |a, e| match (a, e) {
+        (None, x) => x,
+        (x, None) => x,
+        (Some(ALLOW), Some(ALLOW)) => Some(ALLOW),
+        _ => Some(DENY),
     })
 }
 
@@ -98,34 +101,39 @@ where
 /// use Effect2::*;
 ///
 /// // empty is silence
-/// assert_eq!(SILENT, combine_strict(Vec::default()));
+/// assert_eq!(None, combine_strict(Vec::default()));
 ///
 /// // all silence is silence
-/// assert_eq!(SILENT, combine_strict(vec![SILENT, SILENT]));
+/// assert_eq!(None, combine_strict(vec![None, None]));
 ///
 /// // silence wins
-/// assert_eq!(SILENT, combine_strict(vec![SILENT, ALLOW]));
-/// assert_eq!(SILENT, combine_strict(vec![DENY, SILENT]));
+/// assert_eq!(None, combine_strict(vec![None, Some(ALLOW)]));
+/// assert_eq!(None, combine_strict(vec![Some(DENY), None]));
 ///
-/// // if no silence, DENY wins
-/// assert_eq!(DENY, combine_strict(vec![ALLOW, DENY, ALLOW]));
-/// assert_eq!(ALLOW, combine_strict(vec![ALLOW, ALLOW, ALLOW]));
+/// // if no silence, Some(DENY) wins
+/// assert_eq!(Some(DENY), combine_strict(vec![Some(ALLOW), Some(DENY), Some(ALLOW)]));
+/// assert_eq!(Some(ALLOW), combine_strict(vec![Some(ALLOW), Some(ALLOW), Some(ALLOW)]));
 /// ```
-pub fn combine_strict<I>(effs: I) -> Effect2
+pub fn combine_strict<I>(effs: I) -> Option<Effect2>
 where
-    I: IntoIterator<Item = Effect2>,
+    I: IntoIterator<Item = Option<Effect2>>,
 {
     use Effect2::*;
 
+    const O_INIT: Option<Option<Effect2>> = None;
+    const O_SILENCE: Option<Effect2> = None;
+    const O_ALLOW: Option<Effect2> = Some(ALLOW);
+    const O_DENY: Option<Effect2> = Some(DENY);
+
     effs.into_iter()
-        .fold(None, |a, e| match (a, e) {
-            (None, x) => Some(x),
-            (Some(SILENT), _) => Some(SILENT),
-            (_, SILENT) => Some(SILENT),
-            (Some(ALLOW), ALLOW) => Some(ALLOW),
-            _ => Some(DENY),
+        .fold(O_INIT, |a, e| match (a, e) {
+            (O_INIT, x) => Some(x),
+            (Some(O_SILENCE), _) => Some(O_SILENCE),
+            (_, O_SILENCE) => Some(O_SILENCE),
+            (Some(O_ALLOW), O_ALLOW) => Some(O_ALLOW),
+            _ => Some(O_DENY),
         })
-        .unwrap_or(SILENT)
+        .unwrap_or(O_SILENCE)
 }
 
 #[cfg(test)]
@@ -167,54 +175,57 @@ mod tests {
     #[test]
     fn test_combine_non_strict() {
         use Effect2::*;
-        fn check<I>(effs: I, expected: Effect2)
+        fn check<I>(effs: I, expected: Option<Effect2>)
         where
-            I: IntoIterator<Item = Effect2>,
+            I: IntoIterator<Item = Option<Effect2>>,
         {
             assert_eq!(combine_non_strict(effs), expected);
         }
 
-        check(vec![DENY, DENY, DENY], DENY);
-        check(vec![DENY, DENY, ALLOW], DENY);
-        check(vec![DENY, ALLOW, DENY], DENY);
-        check(vec![DENY, ALLOW, ALLOW], DENY);
-        check(vec![ALLOW, DENY, DENY], DENY);
-        check(vec![ALLOW, DENY, ALLOW], DENY);
-        check(vec![ALLOW, ALLOW, DENY], DENY);
+        check(vec![Some(DENY), Some(DENY), Some(DENY)], Some(DENY));
+        check(vec![Some(DENY), Some(DENY), Some(ALLOW)], Some(DENY));
+        check(vec![Some(DENY), Some(ALLOW), Some(DENY)], Some(DENY));
+        check(vec![Some(DENY), Some(ALLOW), Some(ALLOW)], Some(DENY));
+        check(vec![Some(ALLOW), Some(DENY), Some(DENY)], Some(DENY));
+        check(vec![Some(ALLOW), Some(DENY), Some(ALLOW)], Some(DENY));
+        check(vec![Some(ALLOW), Some(ALLOW), Some(DENY)], Some(DENY));
 
-        check(vec![ALLOW, ALLOW, ALLOW], ALLOW);
+        check(vec![Some(ALLOW), Some(ALLOW), Some(ALLOW)], Some(ALLOW));
 
-        check(vec![], SILENT);
-        check(vec![SILENT, SILENT], SILENT);
-        check(vec![SILENT, DENY, SILENT, DENY, SILENT], DENY);
-        check(vec![SILENT, DENY, SILENT, ALLOW, SILENT], DENY);
-        check(vec![SILENT, ALLOW, SILENT, ALLOW, SILENT], ALLOW);
+        check(vec![], None);
+        check(vec![None, None], None);
+        check(vec![None, Some(DENY), None, Some(DENY), None], Some(DENY));
+        check(vec![None, Some(DENY), None, Some(ALLOW), None], Some(DENY));
+        check(
+            vec![None, Some(ALLOW), None, Some(ALLOW), None],
+            Some(ALLOW),
+        );
     }
 
     #[test]
     fn test_combine_strict() {
         use Effect2::*;
-        fn check<I>(effs: I, expected: Effect2)
+        fn check<I>(effs: I, expected: Option<Effect2>)
         where
-            I: IntoIterator<Item = Effect2>,
+            I: IntoIterator<Item = Option<Effect2>>,
         {
             assert_eq!(combine_strict(effs), expected);
         }
 
-        check(vec![DENY, DENY, DENY], DENY);
-        check(vec![DENY, DENY, ALLOW], DENY);
-        check(vec![DENY, ALLOW, DENY], DENY);
-        check(vec![DENY, ALLOW, ALLOW], DENY);
-        check(vec![ALLOW, DENY, DENY], DENY);
-        check(vec![ALLOW, DENY, ALLOW], DENY);
-        check(vec![ALLOW, ALLOW, DENY], DENY);
+        check(vec![Some(DENY), Some(DENY), Some(DENY)], Some(DENY));
+        check(vec![Some(DENY), Some(DENY), Some(ALLOW)], Some(DENY));
+        check(vec![Some(DENY), Some(ALLOW), Some(DENY)], Some(DENY));
+        check(vec![Some(DENY), Some(ALLOW), Some(ALLOW)], Some(DENY));
+        check(vec![Some(ALLOW), Some(DENY), Some(DENY)], Some(DENY));
+        check(vec![Some(ALLOW), Some(DENY), Some(ALLOW)], Some(DENY));
+        check(vec![Some(ALLOW), Some(ALLOW), Some(DENY)], Some(DENY));
 
-        check(vec![ALLOW, ALLOW, ALLOW], ALLOW);
+        check(vec![Some(ALLOW), Some(ALLOW), Some(ALLOW)], Some(ALLOW));
 
-        check(vec![], SILENT);
-        check(vec![SILENT, SILENT], SILENT);
-        check(vec![SILENT, DENY, SILENT, DENY, SILENT], SILENT);
-        check(vec![SILENT, DENY, SILENT, ALLOW, SILENT], SILENT);
-        check(vec![SILENT, ALLOW, SILENT, ALLOW, SILENT], SILENT);
+        check(vec![], None);
+        check(vec![None, None], None);
+        check(vec![None, Some(DENY), None, Some(DENY), None], None);
+        check(vec![None, Some(DENY), None, Some(ALLOW), None], None);
+        check(vec![None, Some(ALLOW), None, Some(ALLOW), None], None);
     }
 }
