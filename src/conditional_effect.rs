@@ -183,130 +183,101 @@ mod tests {
         assert_eq!(actual, Ok(Some(DENY)));
     }
 
-    fn check_aggregate(
-        config: Vec<ConditionalEffect<TestExpression>>,
-        expect: Result<Option<Effect>, ()>,
-    ) {
-        let perm = ConditionalEffect::Aggregate(config);
+    fn check_aggregate(config: Vec<ConditionalEffect<TestExpression>>) {
+        let perm = ConditionalEffect::Aggregate(config.clone());
 
         let actual = perm.resolve(&TestEnv);
+
+        let expect: Result<Vec<Option<Effect>>, ()> =
+            config.into_iter().map(|e| e.resolve(&TestEnv)).collect();
+        let expect = expect.map(combine_non_strict);
 
         assert_eq!(actual, expect);
     }
 
     #[test]
     fn resolve_aggregate_empty() {
-        check_aggregate(vec![], Ok(None));
+        check_aggregate(vec![]);
     }
 
     #[test]
     fn resolve_aggregate_single_allow() {
-        check_aggregate(vec![ConditionalEffect::Fixed(ALLOW)], Ok(Some(ALLOW)));
+        check_aggregate(vec![ConditionalEffect::Fixed(ALLOW)]);
     }
 
     #[test]
     fn resolve_aggregate_single_deny() {
-        check_aggregate(vec![ConditionalEffect::Fixed(DENY)], Ok(Some(DENY)));
+        check_aggregate(vec![ConditionalEffect::Fixed(DENY)]);
     }
 
     #[test]
     fn resolve_aggregate_single_silent() {
-        check_aggregate(vec![ConditionalEffect::Silent], Ok(None));
+        check_aggregate(vec![ConditionalEffect::Silent]);
     }
 
     #[test]
     fn resolve_aggregate_all_allow() {
-        check_aggregate(
-            vec![
-                ConditionalEffect::Fixed(ALLOW),
-                ConditionalEffect::Fixed(ALLOW),
-                ConditionalEffect::Fixed(ALLOW),
-            ],
-            Ok(Some(ALLOW)),
-        );
+        check_aggregate(vec![
+            ConditionalEffect::Fixed(ALLOW),
+            ConditionalEffect::Fixed(ALLOW),
+            ConditionalEffect::Fixed(ALLOW),
+        ]);
     }
 
     #[test]
     fn resolve_aggregate_deny_priority() {
-        check_aggregate(
-            vec![
-                ConditionalEffect::Fixed(DENY),
-                ConditionalEffect::Fixed(ALLOW),
-                ConditionalEffect::Fixed(ALLOW),
-            ],
-            Ok(Some(DENY)),
-        );
-        check_aggregate(
-            vec![
-                ConditionalEffect::Fixed(ALLOW),
-                ConditionalEffect::Fixed(DENY),
-                ConditionalEffect::Fixed(ALLOW),
-            ],
-            Ok(Some(DENY)),
-        );
-        check_aggregate(
-            vec![
-                ConditionalEffect::Fixed(ALLOW),
-                ConditionalEffect::Fixed(ALLOW),
-                ConditionalEffect::Fixed(DENY),
-            ],
-            Ok(Some(DENY)),
-        );
+        check_aggregate(vec![
+            ConditionalEffect::Fixed(DENY),
+            ConditionalEffect::Fixed(ALLOW),
+            ConditionalEffect::Fixed(ALLOW),
+        ]);
+        check_aggregate(vec![
+            ConditionalEffect::Fixed(ALLOW),
+            ConditionalEffect::Fixed(DENY),
+            ConditionalEffect::Fixed(ALLOW),
+        ]);
+        check_aggregate(vec![
+            ConditionalEffect::Fixed(ALLOW),
+            ConditionalEffect::Fixed(ALLOW),
+            ConditionalEffect::Fixed(DENY),
+        ]);
     }
 
     #[test]
     fn resolve_aggregate_silence_ignored() {
-        check_aggregate(
-            vec![
-                ConditionalEffect::Silent,
-                ConditionalEffect::Fixed(ALLOW),
-                ConditionalEffect::Fixed(ALLOW),
-            ],
-            Ok(Some(ALLOW)),
-        );
-        check_aggregate(
-            vec![
-                ConditionalEffect::Fixed(ALLOW),
-                ConditionalEffect::Silent,
-                ConditionalEffect::Fixed(ALLOW),
-            ],
-            Ok(Some(ALLOW)),
-        );
-        check_aggregate(
-            vec![
-                ConditionalEffect::Fixed(ALLOW),
-                ConditionalEffect::Fixed(ALLOW),
-                ConditionalEffect::Silent,
-            ],
-            Ok(Some(ALLOW)),
-        );
-        check_aggregate(
-            vec![
-                ConditionalEffect::Silent,
-                ConditionalEffect::Fixed(ALLOW),
-                ConditionalEffect::Fixed(DENY),
-                ConditionalEffect::Fixed(ALLOW),
-            ],
-            Ok(Some(DENY)),
-        );
-        check_aggregate(
-            vec![
-                ConditionalEffect::Fixed(ALLOW),
-                ConditionalEffect::Silent,
-                ConditionalEffect::Fixed(DENY),
-                ConditionalEffect::Fixed(ALLOW),
-            ],
-            Ok(Some(DENY)),
-        );
-        check_aggregate(
-            vec![
-                ConditionalEffect::Fixed(ALLOW),
-                ConditionalEffect::Fixed(DENY),
-                ConditionalEffect::Fixed(ALLOW),
-                ConditionalEffect::Silent,
-            ],
-            Ok(Some(DENY)),
-        );
+        check_aggregate(vec![
+            ConditionalEffect::Silent,
+            ConditionalEffect::Fixed(ALLOW),
+            ConditionalEffect::Fixed(ALLOW),
+        ]);
+        check_aggregate(vec![
+            ConditionalEffect::Fixed(ALLOW),
+            ConditionalEffect::Silent,
+            ConditionalEffect::Fixed(ALLOW),
+        ]);
+        check_aggregate(vec![
+            ConditionalEffect::Fixed(ALLOW),
+            ConditionalEffect::Fixed(ALLOW),
+            ConditionalEffect::Silent,
+        ]);
+        check_aggregate(vec![
+            ConditionalEffect::Silent,
+            ConditionalEffect::Fixed(ALLOW),
+            ConditionalEffect::Fixed(DENY),
+            ConditionalEffect::Fixed(ALLOW),
+        ]);
+        check_aggregate(vec![
+            ConditionalEffect::Fixed(ALLOW),
+            ConditionalEffect::Silent,
+            ConditionalEffect::Fixed(DENY),
+            ConditionalEffect::Fixed(ALLOW),
+        ]);
+        check_aggregate(vec![
+            ConditionalEffect::Fixed(ALLOW),
+            ConditionalEffect::Fixed(DENY),
+            ConditionalEffect::Fixed(ALLOW),
+            ConditionalEffect::Silent,
+        ]);
     }
 
     #[test]
