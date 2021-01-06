@@ -33,19 +33,19 @@ where
         }
     }
 
-    pub fn apply(self, resource: &R, action: &A) -> Effect<CExp> {
+    pub fn apply(self, resource: &R, action: &A) -> DependentEffect<CExp> {
         use Policy::*;
 
         if self.applies(resource, action) {
             match self {
-                Conditional(_, _, eff, cond) => Effect::Atomic(eff, cond),
-                Unconditional(_, _, eff) => Effect::Fixed(eff),
+                Conditional(_, _, eff, cond) => DependentEffect::Atomic(eff, cond),
+                Unconditional(_, _, eff) => DependentEffect::Fixed(eff),
                 Aggregate(ts) => {
-                    Effect::Aggregate(ts.into_iter().map(|t| t.apply(resource, action)).collect())
+                    DependentEffect::Aggregate(ts.into_iter().map(|t| t.apply(resource, action)).collect())
                 }
             }
         } else {
-            Effect::Silent
+            DependentEffect::Silent
         }
     }
 }
@@ -54,13 +54,13 @@ pub fn apply_disjoint<R, A, Iter, CExp, RMatch, AMatch>(
     policies: Iter,
     resource: &R,
     action: &A,
-) -> Effect<CExp>
+) -> DependentEffect<CExp>
 where
     Iter: IntoIterator<Item = Policy<RMatch, AMatch, CExp>>,
     RMatch: ResourceMatch<Resource = R>,
     AMatch: ActionMatch<Action = A>,
 {
-    Effect::Disjoint(
+    DependentEffect::Disjoint(
         policies
             .into_iter()
             .map(|p| p.apply(resource, action))
@@ -108,7 +108,7 @@ mod tests {
 
         let actual = policy.apply(&Resource("r"), &Action("a"));
 
-        assert_eq!(actual, Effect::Fixed(ALLOW));
+        assert_eq!(actual, DependentEffect::Fixed(ALLOW));
     }
 
     #[test]
@@ -117,7 +117,7 @@ mod tests {
 
         let actual = policy.apply(&Resource("r"), &Action("a"));
 
-        assert_eq!(actual, Effect::Fixed(DENY));
+        assert_eq!(actual, DependentEffect::Fixed(DENY));
     }
 
     #[test]
@@ -126,7 +126,7 @@ mod tests {
 
         let actual = policy.apply(&Resource("r"), &Action("a"));
 
-        assert_eq!(actual, Effect::Silent);
+        assert_eq!(actual, DependentEffect::Silent);
     }
 
     #[test]
@@ -135,7 +135,7 @@ mod tests {
 
         let actual = policy.apply(&Resource("r"), &Action("a"));
 
-        assert_eq!(actual, Effect::Silent);
+        assert_eq!(actual, DependentEffect::Silent);
     }
 
     #[test]
@@ -144,7 +144,7 @@ mod tests {
 
         let actual = policy.apply(&Resource("r"), &Action("a"));
 
-        assert_eq!(actual, Effect::Atomic(ALLOW, ()));
+        assert_eq!(actual, DependentEffect::Atomic(ALLOW, ()));
     }
 
     #[test]
@@ -178,7 +178,7 @@ mod tests {
         let actual = policy.apply(&Resource("r1"), &Action("a1"));
         assert_eq!(
             actual,
-            Effect::Aggregate(
+            DependentEffect::Aggregate(
                 terms
                     .iter()
                     .map(|p| p.clone().apply(&Resource("r1"), &Action("a1")))
@@ -214,7 +214,7 @@ mod tests {
 
         let actual = apply_disjoint(policies.clone(), &r, &a);
 
-        let expected = Effect::Disjoint(
+        let expected = DependentEffect::Disjoint(
             policies
                 .iter()
                 .map(|p| p.clone().apply(&Resource("r"), &Action("a")))
