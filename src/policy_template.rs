@@ -1,4 +1,4 @@
-use super::authorization::Authorization;
+use super::authorization::Effect;
 use super::policy::*;
 
 pub trait Template<T> {
@@ -8,8 +8,8 @@ pub trait Template<T> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PolicyTemplate<RMatchTpl, AMatch, CExp> {
-    Unconditional(RMatchTpl, AMatch, Authorization),
-    Conditional(RMatchTpl, AMatch, Authorization, CExp),
+    Unconditional(RMatchTpl, AMatch, Effect),
+    Conditional(RMatchTpl, AMatch, Effect, CExp),
     Aggregate(Vec<PolicyTemplate<RMatchTpl, AMatch, CExp>>),
 }
 
@@ -71,16 +71,16 @@ mod tests {
     fn test_nonempty_aggregate() {
         use PolicyTemplate::*;
         let elems = vec![
-            Unconditional(RMatchTpl, AMatch("a1"), Authorization::ALLOW),
-            Unconditional(RMatchTpl, AMatch("a2"), Authorization::DENY),
-            Conditional(RMatchTpl, AMatch("a3"), Authorization::ALLOW, Cond("c1")),
-            Conditional(RMatchTpl, AMatch("a4"), Authorization::DENY, Cond("c2")),
+            Unconditional(RMatchTpl, AMatch("a1"), Effect::ALLOW),
+            Unconditional(RMatchTpl, AMatch("a2"), Effect::DENY),
+            Conditional(RMatchTpl, AMatch("a3"), Effect::ALLOW, Cond("c1")),
+            Conditional(RMatchTpl, AMatch("a4"), Effect::DENY, Cond("c2")),
             Aggregate(vec![
                 Aggregate(vec![
-                    Unconditional(RMatchTpl, AMatch("a5"), Authorization::ALLOW),
-                    Unconditional(RMatchTpl, AMatch("a6"), Authorization::DENY),
-                    Conditional(RMatchTpl, AMatch("a7"), Authorization::ALLOW, Cond("c3")),
-                    Conditional(RMatchTpl, AMatch("a8"), Authorization::DENY, Cond("c4")),
+                    Unconditional(RMatchTpl, AMatch("a5"), Effect::ALLOW),
+                    Unconditional(RMatchTpl, AMatch("a6"), Effect::DENY),
+                    Conditional(RMatchTpl, AMatch("a7"), Effect::ALLOW, Cond("c3")),
+                    Conditional(RMatchTpl, AMatch("a8"), Effect::DENY, Cond("c4")),
                 ]),
                 Aggregate(vec![]),
             ]),
@@ -100,14 +100,14 @@ mod tests {
         let template = PolicyTemplate::<RMatchTpl, AMatch, Cond>::Unconditional(
             rmatch_tpl,
             AMatch("a"),
-            Authorization::ALLOW,
+            Effect::ALLOW,
         );
 
         let actual = template.apply(&"xyz");
 
         assert_eq!(
             actual,
-            Policy::Unconditional(rmatch_tpl.apply(&"xyz"), AMatch("a"), Authorization::ALLOW)
+            Policy::Unconditional(rmatch_tpl.apply(&"xyz"), AMatch("a"), Effect::ALLOW)
         );
     }
 
@@ -117,14 +117,14 @@ mod tests {
         let template = PolicyTemplate::<RMatchTpl, AMatch, Cond>::Unconditional(
             rmatch_tpl,
             AMatch("a"),
-            Authorization::DENY,
+            Effect::DENY,
         );
 
         let actual = template.apply(&"xyz");
 
         assert_eq!(
             actual,
-            Policy::Unconditional(rmatch_tpl.apply(&"xyz"), AMatch("a"), Authorization::DENY)
+            Policy::Unconditional(rmatch_tpl.apply(&"xyz"), AMatch("a"), Effect::DENY)
         );
     }
 
@@ -134,7 +134,7 @@ mod tests {
         let template = PolicyTemplate::<RMatchTpl, AMatch, Cond>::Conditional(
             rmatch_tpl,
             AMatch("a"),
-            Authorization::ALLOW,
+            Effect::ALLOW,
             Cond("c"),
         );
 
@@ -145,7 +145,7 @@ mod tests {
             Policy::Conditional(
                 rmatch_tpl.apply(&"xyz"),
                 AMatch("a"),
-                Authorization::ALLOW,
+                Effect::ALLOW,
                 Cond("c")
             )
         );
@@ -157,7 +157,7 @@ mod tests {
         let template = PolicyTemplate::<RMatchTpl, AMatch, Cond>::Conditional(
             rmatch_tpl,
             AMatch("a"),
-            Authorization::DENY,
+            Effect::DENY,
             Cond("x"),
         );
 
@@ -168,7 +168,7 @@ mod tests {
             Policy::Conditional(
                 rmatch_tpl.apply(&"xyz"),
                 AMatch("a"),
-                Authorization::DENY,
+                Effect::DENY,
                 Cond("x")
             )
         );
