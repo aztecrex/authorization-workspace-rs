@@ -10,8 +10,6 @@ pub enum Effect {
     DENY,
 }
 
-
-
 /// Combine multiple optional effects in non-strict fashion. i.e. where combining
 /// can result in silence. This function returns silence iff the argument is empty or
 /// contains only silence. Otherwise, it returns `Some(ALLOW)` iff all non-silent
@@ -106,7 +104,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-
 
     #[test]
     fn test_combine_non_strict() {

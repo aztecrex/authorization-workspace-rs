@@ -7,7 +7,7 @@ use super::effect::*;
 /// iff its condition is true in the environment.  Some of the
 /// variants are unconditional, i.e. they return a const value independent
 /// of the environment
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ConditionalEffect<CExp> {
     /// Unconditional silence. Resolves to `None` in any environment.
     Silent,
@@ -47,9 +47,8 @@ impl<CExp> ConditionalEffect<CExp> {
                 Ok(resolved)
             }
             Disjoint(effs) => {
-
                 let resolved: Result<Vec<Option<Effect>>, Env::Err> =
-                effs.into_iter().map(|p| p.resolve(environment)).collect();
+                    effs.into_iter().map(|p| p.resolve(environment)).collect();
                 let resolved = resolved?;
                 let resolved = combine_strict(resolved);
 
@@ -415,66 +414,63 @@ mod tests {
         assert_eq!(actual, Ok(None))
     }
 
-    fn check_disjoint(
-        elems: Vec<ConditionalEffect<TestExpression>>,
-        expected: Result<Option<Effect>, ()>,
-    ) {
-        let effect = ConditionalEffect::Disjoint(elems);
+    #[test]
+    fn test_resolve_disjoint_error() {
+        use ConditionalEffect::*;
+        let effect =
+            ConditionalEffect::Disjoint(vec![Fixed(ALLOW), Atomic(ALLOW, TestExpression::Error)]);
 
         let actual = effect.resolve(&TestEnv);
 
-        assert_eq!(actual, expected);
+        assert_eq!(actual, Err(()));
     }
 
     #[test]
     fn test_resolve_disjoint() {
         use ConditionalEffect::*;
 
-        check_disjoint(vec![Silent, Fixed(ALLOW)], Ok(None));
-        check_disjoint(vec![Fixed(ALLOW), Silent], Ok(None));
-        check_disjoint(vec![Fixed(ALLOW), Fixed(ALLOW)], Ok(Some(ALLOW)));
-        check_disjoint(vec![Fixed(ALLOW), Fixed(DENY)], Ok(Some(DENY)));
-        check_disjoint(vec![Fixed(DENY), Fixed(ALLOW)], Ok(Some(DENY)));
-        check_disjoint(vec![Fixed(DENY), Silent], Ok(None));
-        check_disjoint(vec![Silent, Fixed(DENY)], Ok(None));
-        check_disjoint(vec![Atomic(ALLOW, TestExpression::Match)], Ok(Some(ALLOW)));
-        check_disjoint(vec![Atomic(DENY, TestExpression::Match)], Ok(Some(DENY)));
-        check_disjoint(
-            vec![Atomic(DENY, TestExpression::Miss), Fixed(ALLOW)],
-            Ok(None),
-        );
-        check_disjoint(
-            vec![Atomic(ALLOW, TestExpression::Miss), Fixed(DENY)],
-            Ok(None),
-        );
-        check_disjoint(
-            vec![
-                Atomic(ALLOW, TestExpression::Match),
-                Atomic(DENY, TestExpression::Miss),
-            ],
-            Ok(None),
-        );
-        check_disjoint(
-            vec![
-                Atomic(ALLOW, TestExpression::Match),
-                Atomic(DENY, TestExpression::Match),
-            ],
-            Ok(Some(DENY)),
-        );
-        check_disjoint(
-            vec![
-                Atomic(ALLOW, TestExpression::Match),
-                Atomic(ALLOW, TestExpression::Match),
-            ],
-            Ok(Some(ALLOW)),
-        );
-        check_disjoint(
-            vec![
-                Atomic(ALLOW, TestExpression::Match),
-                Atomic(ALLOW, TestExpression::Error),
-                Atomic(DENY, TestExpression::Match),
-            ],
-            Err(()),
-        );
+        fn check<I>(effs: I)
+        where
+            I: IntoIterator<Item = ConditionalEffect<TestExpression>> + Clone,
+        {
+            let eff = ConditionalEffect::Disjoint(effs.clone().into_iter().collect());
+
+            let actual = eff.resolve(&TestEnv);
+
+            let expected: Result<Vec<Option<Effect>>, ()> =
+                effs.into_iter().map(|e| e.resolve(&TestEnv)).collect();
+            let expected = expected.map(combine_strict);
+
+            assert_eq!(actual, expected);
+        }
+
+        check(vec![Silent, Fixed(ALLOW)]);
+        check(vec![Fixed(ALLOW), Silent]);
+        check(vec![Fixed(ALLOW), Fixed(ALLOW)]);
+        check(vec![Fixed(ALLOW), Fixed(DENY)]);
+        check(vec![Fixed(DENY), Fixed(ALLOW)]);
+        check(vec![Fixed(DENY), Silent]);
+        check(vec![Silent, Fixed(DENY)]);
+        check(vec![Atomic(ALLOW, TestExpression::Match)]);
+        check(vec![Atomic(DENY, TestExpression::Match)]);
+        check(vec![Atomic(DENY, TestExpression::Miss), Fixed(ALLOW)]);
+        check(vec![Atomic(ALLOW, TestExpression::Miss), Fixed(DENY)]);
+        check(vec![
+            Atomic(ALLOW, TestExpression::Match),
+            Atomic(DENY, TestExpression::Miss),
+        ]);
+        check(vec![
+            Atomic(ALLOW, TestExpression::Match),
+            Atomic(DENY, TestExpression::Match),
+        ]);
+        check(vec![
+            Atomic(ALLOW, TestExpression::Match),
+            Atomic(ALLOW, TestExpression::Match),
+        ]);
+        check(vec![
+            Fixed(ALLOW),
+            Atomic(ALLOW, TestExpression::Miss),
+            Fixed(ALLOW),
+        ]);
     }
 }
