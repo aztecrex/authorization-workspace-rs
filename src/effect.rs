@@ -6,7 +6,7 @@ use super::condition::*;
 /// With respect to an environment, a conditional effect applies
 /// if and only if its condition is true in the environment.
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum ConditionalEffect<CExp> {
+pub enum Effect<CExp> {
     /// Unconditional silence. Resolves to `None` in any environment.
     Silent,
     /// Unconditional effect. Resolves to `Some(Authorization)` in any environment.
@@ -16,16 +16,16 @@ pub enum ConditionalEffect<CExp> {
     Atomic(Authorization, CExp),
     /// Multiple policy aggregate. It resolves by resolving then folding its constituents
     /// according to `effect::resolve
-    Aggregate(Vec<ConditionalEffect<CExp>>),
-    Disjoint(Vec<ConditionalEffect<CExp>>),
+    Aggregate(Vec<Effect<CExp>>),
+    Disjoint(Vec<Effect<CExp>>),
 }
 
-impl<CExp> ConditionalEffect<CExp> {
+impl<CExp> Effect<CExp> {
     pub fn resolve<Env>(&self, environment: &Env) -> Result<Option<Authorization>, Env::Err>
     where
         Env: Environment<CExp = CExp>,
     {
-        use ConditionalEffect::*;
+        use Effect::*;
         match self {
             Silent => Ok(None),
             Atomic(perm, cexp) => {
@@ -57,7 +57,7 @@ impl<CExp> ConditionalEffect<CExp> {
 }
 
 pub fn resolve_all<'a, CExp: 'a, Env>(
-    perms: impl Iterator<Item = &'a ConditionalEffect<CExp>>,
+    perms: impl Iterator<Item = &'a Effect<CExp>>,
     environment: &Env,
 ) -> Result<Vec<Option<Authorization>>, Env::Err>
 where
@@ -107,7 +107,7 @@ mod tests {
 
     #[test]
     fn resolve_silent() {
-        let perm = ConditionalEffect::Silent;
+        let perm = Effect::Silent;
 
         let actual = perm.resolve(&TestEnv);
 
@@ -116,7 +116,7 @@ mod tests {
 
     #[test]
     fn resolve_atomic_allow_match() {
-        let perm = ConditionalEffect::Atomic(Authorization::ALLOW, TestExpression::Match);
+        let perm = Effect::Atomic(Authorization::ALLOW, TestExpression::Match);
 
         let actual = perm.resolve(&TestEnv);
 
@@ -125,7 +125,7 @@ mod tests {
 
     #[test]
     fn resolve_atomic_deny_match() {
-        let perm = ConditionalEffect::Atomic(Authorization::DENY, TestExpression::Match);
+        let perm = Effect::Atomic(Authorization::DENY, TestExpression::Match);
 
         let actual = perm.resolve(&TestEnv);
 
@@ -134,7 +134,7 @@ mod tests {
 
     #[test]
     fn resolve_atomic_allow_miss() {
-        let perm = ConditionalEffect::Atomic(Authorization::ALLOW, TestExpression::Miss);
+        let perm = Effect::Atomic(Authorization::ALLOW, TestExpression::Miss);
 
         let actual = perm.resolve(&TestEnv);
 
@@ -143,7 +143,7 @@ mod tests {
 
     #[test]
     fn resolve_atomic_deny_miss() {
-        let perm = ConditionalEffect::Atomic(Authorization::DENY, TestExpression::Miss);
+        let perm = Effect::Atomic(Authorization::DENY, TestExpression::Miss);
 
         let actual = perm.resolve(&TestEnv);
 
@@ -152,7 +152,7 @@ mod tests {
 
     #[test]
     fn resolve_atomic_error() {
-        let perm = ConditionalEffect::Atomic(Authorization::ALLOW, TestExpression::Error);
+        let perm = Effect::Atomic(Authorization::ALLOW, TestExpression::Error);
 
         let actual = perm.resolve(&TestEnv);
 
@@ -165,7 +165,7 @@ mod tests {
 
     #[test]
     fn resolve_fixed_allow() {
-        let perm = ConditionalEffect::<TestExpression>::Fixed(ALLOW);
+        let perm = Effect::<TestExpression>::Fixed(ALLOW);
 
         let actual = perm.resolve(&TestEnv);
 
@@ -174,15 +174,15 @@ mod tests {
 
     #[test]
     fn resolve_fixed_deny() {
-        let perm = ConditionalEffect::<TestExpression>::Fixed(DENY);
+        let perm = Effect::<TestExpression>::Fixed(DENY);
 
         let actual = perm.resolve(&TestEnv);
 
         assert_eq!(actual, Ok(Some(DENY)));
     }
 
-    fn check_aggregate(config: Vec<ConditionalEffect<TestExpression>>) {
-        let perm = ConditionalEffect::Aggregate(config.clone());
+    fn check_aggregate(config: Vec<Effect<TestExpression>>) {
+        let perm = Effect::Aggregate(config.clone());
 
         let actual = perm.resolve(&TestEnv);
 
@@ -200,87 +200,87 @@ mod tests {
 
     #[test]
     fn resolve_aggregate_single_allow() {
-        check_aggregate(vec![ConditionalEffect::Fixed(ALLOW)]);
+        check_aggregate(vec![Effect::Fixed(ALLOW)]);
     }
 
     #[test]
     fn resolve_aggregate_single_deny() {
-        check_aggregate(vec![ConditionalEffect::Fixed(DENY)]);
+        check_aggregate(vec![Effect::Fixed(DENY)]);
     }
 
     #[test]
     fn resolve_aggregate_single_silent() {
-        check_aggregate(vec![ConditionalEffect::Silent]);
+        check_aggregate(vec![Effect::Silent]);
     }
 
     #[test]
     fn resolve_aggregate_all_allow() {
         check_aggregate(vec![
-            ConditionalEffect::Fixed(ALLOW),
-            ConditionalEffect::Fixed(ALLOW),
-            ConditionalEffect::Fixed(ALLOW),
+            Effect::Fixed(ALLOW),
+            Effect::Fixed(ALLOW),
+            Effect::Fixed(ALLOW),
         ]);
     }
 
     #[test]
     fn resolve_aggregate_deny_priority() {
         check_aggregate(vec![
-            ConditionalEffect::Fixed(DENY),
-            ConditionalEffect::Fixed(ALLOW),
-            ConditionalEffect::Fixed(ALLOW),
+            Effect::Fixed(DENY),
+            Effect::Fixed(ALLOW),
+            Effect::Fixed(ALLOW),
         ]);
         check_aggregate(vec![
-            ConditionalEffect::Fixed(ALLOW),
-            ConditionalEffect::Fixed(DENY),
-            ConditionalEffect::Fixed(ALLOW),
+            Effect::Fixed(ALLOW),
+            Effect::Fixed(DENY),
+            Effect::Fixed(ALLOW),
         ]);
         check_aggregate(vec![
-            ConditionalEffect::Fixed(ALLOW),
-            ConditionalEffect::Fixed(ALLOW),
-            ConditionalEffect::Fixed(DENY),
+            Effect::Fixed(ALLOW),
+            Effect::Fixed(ALLOW),
+            Effect::Fixed(DENY),
         ]);
     }
 
     #[test]
     fn resolve_aggregate_silence_ignored() {
         check_aggregate(vec![
-            ConditionalEffect::Silent,
-            ConditionalEffect::Fixed(ALLOW),
-            ConditionalEffect::Fixed(ALLOW),
+            Effect::Silent,
+            Effect::Fixed(ALLOW),
+            Effect::Fixed(ALLOW),
         ]);
         check_aggregate(vec![
-            ConditionalEffect::Fixed(ALLOW),
-            ConditionalEffect::Silent,
-            ConditionalEffect::Fixed(ALLOW),
+            Effect::Fixed(ALLOW),
+            Effect::Silent,
+            Effect::Fixed(ALLOW),
         ]);
         check_aggregate(vec![
-            ConditionalEffect::Fixed(ALLOW),
-            ConditionalEffect::Fixed(ALLOW),
-            ConditionalEffect::Silent,
+            Effect::Fixed(ALLOW),
+            Effect::Fixed(ALLOW),
+            Effect::Silent,
         ]);
         check_aggregate(vec![
-            ConditionalEffect::Silent,
-            ConditionalEffect::Fixed(ALLOW),
-            ConditionalEffect::Fixed(DENY),
-            ConditionalEffect::Fixed(ALLOW),
+            Effect::Silent,
+            Effect::Fixed(ALLOW),
+            Effect::Fixed(DENY),
+            Effect::Fixed(ALLOW),
         ]);
         check_aggregate(vec![
-            ConditionalEffect::Fixed(ALLOW),
-            ConditionalEffect::Silent,
-            ConditionalEffect::Fixed(DENY),
-            ConditionalEffect::Fixed(ALLOW),
+            Effect::Fixed(ALLOW),
+            Effect::Silent,
+            Effect::Fixed(DENY),
+            Effect::Fixed(ALLOW),
         ]);
         check_aggregate(vec![
-            ConditionalEffect::Fixed(ALLOW),
-            ConditionalEffect::Fixed(DENY),
-            ConditionalEffect::Fixed(ALLOW),
-            ConditionalEffect::Silent,
+            Effect::Fixed(ALLOW),
+            Effect::Fixed(DENY),
+            Effect::Fixed(ALLOW),
+            Effect::Silent,
         ]);
     }
 
     #[test]
     fn test_nested_condition() {
-        use ConditionalEffect::*;
+        use Effect::*;
 
         let perm = Aggregate(vec![
             Atomic(DENY, 1u32),
@@ -300,7 +300,7 @@ mod tests {
 
     #[test]
     fn test_resolve_all() {
-        use ConditionalEffect::*;
+        use Effect::*;
 
         let perms = vec![
             Atomic(ALLOW, 1u32),
@@ -346,7 +346,7 @@ mod tests {
 
     #[test]
     fn test_resolve_all_err() {
-        use ConditionalEffect::*;
+        use Effect::*;
 
         let perms = vec![
             Fixed(ALLOW),
@@ -366,7 +366,7 @@ mod tests {
 
     #[test]
     fn test_resolve_disjoint_empty() {
-        let effect = ConditionalEffect::Disjoint(vec![]);
+        let effect = Effect::Disjoint(vec![]);
 
         let actual = effect.resolve(&TestEnv);
 
@@ -375,8 +375,7 @@ mod tests {
 
     #[test]
     fn test_resolve_disjoint_all_silent() {
-        let effect =
-            ConditionalEffect::Disjoint(vec![ConditionalEffect::Silent, ConditionalEffect::Silent]);
+        let effect = Effect::Disjoint(vec![Effect::Silent, Effect::Silent]);
 
         let actual = effect.resolve(&TestEnv);
 
@@ -385,9 +384,8 @@ mod tests {
 
     #[test]
     fn test_resolve_disjoint_error() {
-        use ConditionalEffect::*;
-        let effect =
-            ConditionalEffect::Disjoint(vec![Fixed(ALLOW), Atomic(ALLOW, TestExpression::Error)]);
+        use Effect::*;
+        let effect = Effect::Disjoint(vec![Fixed(ALLOW), Atomic(ALLOW, TestExpression::Error)]);
 
         let actual = effect.resolve(&TestEnv);
 
@@ -396,13 +394,13 @@ mod tests {
 
     #[test]
     fn test_resolve_disjoint() {
-        use ConditionalEffect::*;
+        use Effect::*;
 
         fn check<I>(effs: I)
         where
-            I: IntoIterator<Item = ConditionalEffect<TestExpression>> + Clone,
+            I: IntoIterator<Item = Effect<TestExpression>> + Clone,
         {
-            let eff = ConditionalEffect::Disjoint(effs.clone().into_iter().collect());
+            let eff = Effect::Disjoint(effs.clone().into_iter().collect());
 
             let actual = eff.resolve(&TestEnv);
 
