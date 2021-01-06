@@ -1,7 +1,7 @@
 //! Effects that depend on environmental conditions
 
-use super::condition::*;
 use super::authorization::*;
+use super::condition::*;
 
 /// With respect to an environment, a conditional effect applies
 /// if and only if its condition is true in the environment.

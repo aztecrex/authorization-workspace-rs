@@ -1,5 +1,5 @@
-use super::conditional_effect::*;
 use super::authorization::*;
+use super::conditional_effect::*;
 
 pub trait ResourceMatch {
     type Resource;
