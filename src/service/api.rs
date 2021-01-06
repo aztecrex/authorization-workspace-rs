@@ -1,4 +1,4 @@
-use crate::effect::*;
+use crate::effect::Effect;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Principal<Id> {
@@ -16,5 +16,5 @@ pub trait Query {
         &self,
         principal: &Principal<Self::PId>,
         query: dyn Iterator<Item = (Self::Resource, Self::Action)>,
-    ) -> Result<Vec<((Self::Resource, Self::Action), Permission)>, Self::Err>;
+    ) -> Result<Vec<((Self::Resource, Self::Action), Effect)>, Self::Err>;
 }
