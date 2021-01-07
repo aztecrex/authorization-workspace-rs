@@ -7,3 +7,4 @@ pub mod policy;
 pub mod policy_template;
 pub mod resource;
 pub mod service;
+pub mod path;

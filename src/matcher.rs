@@ -12,10 +12,12 @@ pub trait ExtendedMatcher {
     type Target;
     type Matcher: Matcher<Target = Self::Target>;
 
-    fn match_exact(target: Self::Target) -> Self::Matcher;
-    fn match_any<I>(targets: I) -> Self::Matcher
-    where
-        I: IntoIterator<Item = Self::Target>;
-    fn match_all() -> Self::Matcher;
+    /// Match a specific resource
+    fn match_only(target: Self::Target) -> Self::Matcher;
+
+    /// Match any resouorce (i.e. test is const true)
+    fn match_any() -> Self::Matcher;
+
+    /// match nothing (i.e. test is const false)
     fn match_none() -> Self::Matcher;
 }

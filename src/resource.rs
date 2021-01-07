@@ -1,4 +1,5 @@
 use super::matcher::*;
+use super::path::*;
 
 /// Trait for matching resources. When evaluating a policy, this is used to determine if
 /// the policy applies with respect to a concrete resource.
@@ -34,25 +35,7 @@ impl<'a> Matcher for StrResource<'a> {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct ResourcePathElem(String);
-
-// impl From<&str> for ResourcePathElem {
-//     fn from(v: &str) -> Self {
-//         ResourcePathElem(v.into())
-//     }
-// }
-
-impl<I> From<I> for ResourcePathElem
-where
-    I: Into<String>,
-{
-    fn from(v: I) -> Self {
-        ResourcePathElem(v.into())
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-struct ResourcePath(Vec<ResourcePathElem>);
+struct ResourcePath(Vec<PathElem>);
 
 #[cfg(test)]
 mod tests {
