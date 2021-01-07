@@ -28,6 +28,13 @@ where
     }
 }
 
+impl From<PathElem> for PathElemMatcher {
+    fn from(v: PathElem) -> Self {
+        let PathElem(v) = v;
+        PathElemMatcher::V(v)
+    }
+}
+
 impl Matcher for PathElemMatcher {
     type Target = PathElem;
 

@@ -10,7 +10,12 @@ pub enum Effect {
     DENY,
 }
 
-impl Effect {
+/// Trait for authorizationi
+pub trait Authorization {
+    fn authorized(self) -> bool;
+}
+
+impl Authorization for Effect {
     /// Determine if Effect authorizes access. The only effect that authorizes
     /// access is `Effect::ALLOW`.
     ///
@@ -22,7 +27,7 @@ impl Effect {
     /// assert_eq!(Effect::ALLOW.authorized(), true);
     /// assert_eq!(Effect::DENY.authorized(), false);
     /// ```
-    pub fn authorized(self) -> bool {
+    fn authorized(self) -> bool {
         self == Self::ALLOW
     }
 }
