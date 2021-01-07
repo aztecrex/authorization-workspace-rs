@@ -99,6 +99,36 @@ where
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct PathMatcher(Vec<PathElemMatcher>);
+
+impl PathMatcher {
+    pub fn new<I, E>(elems: I) -> Self
+    where
+        E: Into<PathElemMatcher>,
+        I: IntoIterator<Item = E>,
+    {
+        PathMatcher(elems.into_iter().map(|e| e.into()).collect())
+    }
+}
+
+impl<I, E> From<I> for PathMatcher
+where
+    E: Into<PathElemMatcher>,
+    I: IntoIterator<Item = E>,
+{
+    fn from(elems: I) -> Self {
+        PathMatcher::new(elems)
+    }
+}
+
+impl From<Path> for PathMatcher {
+    fn from(path: Path) -> Self {
+        let Path(path) = path;
+        PathMatcher(path.into_iter().map(|e| e.into()).collect())
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
