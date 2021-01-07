@@ -56,7 +56,7 @@ impl ExtendedMatcher for PathElemMatcher {
 
     /// match nothing (i.e. test is const false)
     fn match_none() -> Self {
-        unimplemented!();
+        PathElemMatcher::NONE
     }
 }
 
@@ -114,6 +114,17 @@ mod tests {
         let matcher = PathElemMatcher::match_any();
 
         let equivalent = PathElemMatcher::ANY;
+
+        let actual = matcher.test(&"arbitrary".into());
+        let expected = equivalent.test(&"arbitrary".into());
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_path_elem_ext_match_none() {
+        let matcher = PathElemMatcher::match_none();
+
+        let equivalent = PathElemMatcher::NONE;
 
         let actual = matcher.test(&"arbitrary".into());
         let expected = equivalent.test(&"arbitrary".into());
