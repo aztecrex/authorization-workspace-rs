@@ -41,6 +41,25 @@ impl Matcher for PathElemMatcher {
     }
 }
 
+impl ExtendedMatcher for PathElemMatcher {
+    type Target = PathElem;
+
+    /// Match a specific resource
+    fn match_only(target: Self::Target) -> Self {
+        PathElemMatcher::V(target.0.into())
+    }
+
+    /// Match any resouorce (i.e. test is const true)
+    fn match_any() -> Self {
+        unimplemented!();
+    }
+
+    /// match nothing (i.e. test is const false)
+    fn match_none() -> Self {
+        unimplemented!();
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -73,5 +92,20 @@ mod tests {
 
         let actual = matcher.test(&"arbitrary".into());
         assert_eq!(actual, false);
+    }
+
+    #[test]
+    fn test_path_elem_ext_match_only() {
+        let matcher = PathElemMatcher::match_only("matchit".into());
+
+        let equivalent = PathElemMatcher::V("matchit".into());
+
+        let actual = matcher.test(&"matchit".into());
+        let expected = equivalent.test(&"matchit".into());
+        assert_eq!(actual, expected);
+
+        let actual = matcher.test(&"other".into());
+        let expected = equivalent.test(&"other".into());
+        assert_eq!(actual, expected);
     }
 }

@@ -10,14 +10,20 @@ pub trait Matcher {
 /// this.
 pub trait ExtendedMatcher {
     type Target;
-    type Matcher: Matcher<Target = Self::Target>;
 
     /// Match a specific resource
-    fn match_only(target: Self::Target) -> Self::Matcher;
+    fn match_only(target: Self::Target) -> Self;
 
     /// Match any resouorce (i.e. test is const true)
-    fn match_any() -> Self::Matcher;
+    fn match_any() -> Self;
 
     /// match nothing (i.e. test is const false)
-    fn match_none() -> Self::Matcher;
+    fn match_none() -> Self;
 }
+
+// impl <T, M> From<T> for M: ExtendedMatcher<Target = T>
+// {
+//     fn from(v: T) -> Self {
+//         M::match_only(v)
+//     }
+// }
