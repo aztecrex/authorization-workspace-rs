@@ -33,14 +33,14 @@ where
     I: Into<String>,
 {
     fn from(v: I) -> Self {
-        PathElemMatcher::V(v.into())
+        PathElemMatcher::new(v)
     }
 }
 
 impl From<PathElem> for PathElemMatcher {
     fn from(v: PathElem) -> Self {
         let PathElem(v) = v;
-        PathElemMatcher::V(v)
+        PathElemMatcher::new(v)
     }
 }
 
@@ -73,6 +73,29 @@ impl ExtendedMatcher for PathElemMatcher {
     /// match nothing (i.e. test is const false)
     fn match_none() -> Self {
         PathElemMatcher::NONE
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Path(Vec<PathElem>);
+
+impl Path {
+    pub fn new<I, E>(elems: I) -> Self
+    where
+        E: Into<PathElem>,
+        I: IntoIterator<Item = E>,
+    {
+        Path(elems.into_iter().map(|e| e.into()).collect())
+    }
+}
+
+impl<I, E> From<I> for Path
+where
+    E: Into<PathElem>,
+    I: IntoIterator<Item = E>,
+{
+    fn from(elems: I) -> Self {
+        Path::new(elems)
     }
 }
 
