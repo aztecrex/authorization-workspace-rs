@@ -34,7 +34,13 @@ impl Matcher for PathElemMatcher {
     type Target = PathElem;
 
     fn test(&self, target: &Self::Target) -> bool {
-        true
+        use PathElemMatcher::*;
+        match self {
+            ANY => true,
+            NONE => false,
+            _ => unimplemented!(),
+        }
+        
     }
 }
 
@@ -51,6 +57,17 @@ mod tests {
         let actual = e.test(&"totally arbitrary".into());
 
         assert_eq!(actual, true);
+
+    }
+
+    #[test]
+    fn test_path_elem_matcher_none() {
+
+        let e = PathElemMatcher::NONE;
+
+        let actual = e.test(&"totally arbitrary".into());
+
+        assert_eq!(actual, false);
 
     }
 
