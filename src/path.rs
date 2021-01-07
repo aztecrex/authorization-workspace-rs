@@ -19,6 +19,15 @@ pub enum PathElemMatcher {
     V(String),
 }
 
+impl PathElemMatcher {
+    pub fn new<V>(v: V) -> PathElemMatcher
+    where
+        V: Into<String>,
+    {
+        PathElemMatcher::V(v.into())
+    }
+}
+
 impl<I> From<I> for PathElemMatcher
 where
     I: Into<String>,
