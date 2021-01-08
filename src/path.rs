@@ -132,7 +132,7 @@ impl From<Path> for PathMatcher {
 impl Matcher for PathMatcher {
     type Target = Path;
     fn test(&self, target: &Self::Target) -> bool {
-        self.0.iter().zip(target.0.iter()).all(|(m, e)| m.test(e))
+        self.0.len() == target.0.len() && self.0.iter().zip(target.0.iter()).all(|(m, e)| m.test(e))
     }
 }
 
@@ -232,6 +232,23 @@ mod tests {
 
         assert_eq!(matcher.test(&p1), true);
         assert_eq!(matcher.test(&p2), true);
+        assert_eq!(matcher.test(&p3), false);
+    }
+
+    #[test]
+    fn test_path_matcher_mismatched_aize() {
+        let matcher = PathMatcher::new(vec![
+            PathElemMatcher::new("a"),
+            PathElemMatcher::new("b"),
+            PathElemMatcher::new("c"),
+        ]);
+
+        let p1 = vec!["a", "b", "c"].into();
+        let p2 = vec!["a", "b"].into();
+        let p3 = vec!["a", "b", "c", "d"].into();
+
+        assert_eq!(matcher.test(&p1), true);
+        assert_eq!(matcher.test(&p2), false);
         assert_eq!(matcher.test(&p3), false);
     }
 }
