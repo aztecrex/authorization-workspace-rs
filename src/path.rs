@@ -129,6 +129,13 @@ impl From<Path> for PathMatcher {
     }
 }
 
+impl Matcher for PathMatcher {
+    type Target = Path;
+    fn test(&self, target: &Self::Target) -> bool {
+        self.0.iter().zip(target.0.iter()).all(|(m, e)| m.test(e))
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -198,5 +205,33 @@ mod tests {
         let actual = matcher.test(&"arbitrary".into());
         let expected = equivalent.test(&"arbitrary".into());
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    /// basic happy path
+    fn test_path_match_all_exact() {
+        let positive = Path::new(vec!["a", "b", "c"]);
+        let matcher: PathMatcher = positive.clone().into();
+        let negative = Path::new(vec!["a", "b", "z"]);
+
+        assert_eq!(matcher.test(&positive), true);
+        assert_eq!(matcher.test(&negative), false);
+    }
+
+    #[test]
+    fn test_path_match_with_wild() {
+        let matcher = PathMatcher::new(vec![
+            PathElemMatcher::new("a"),
+            PathElemMatcher::ANY,
+            PathElemMatcher::new("c"),
+        ]);
+
+        let p1 = vec!["a", "b", "c"].into();
+        let p2 = vec!["a", "z", "c"].into();
+        let p3 = vec!["z", "b", "c"].into();
+
+        assert_eq!(matcher.test(&p1), true);
+        assert_eq!(matcher.test(&p2), true);
+        assert_eq!(matcher.test(&p3), false);
     }
 }
