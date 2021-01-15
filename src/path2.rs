@@ -1,6 +1,6 @@
 use super::matcher::*;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Path2Elem<'a>(&'a str);
 
 impl<'a, I> From<I> for Path2Elem<'a>
@@ -12,7 +12,7 @@ where
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Path2ElemMatcher<'a> {
     ANY,
     NONE,
