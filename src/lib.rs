@@ -4,7 +4,6 @@ pub mod effect;
 pub mod environment;
 pub mod matcher;
 pub mod path;
-pub mod path2;
 pub mod policy;
 pub mod policy_template;
 pub mod resource;

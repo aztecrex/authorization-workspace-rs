@@ -1,5 +1,5 @@
 //! Value matching traits.
-//! 
+//!
 //! This could use a better name. The basic funcionality
 //! checks values for inclusion in a group. I don't
 //! think it's an equivalance class but maybe something
