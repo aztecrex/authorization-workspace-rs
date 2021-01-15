@@ -1,3 +1,12 @@
+//! Value matching traits.
+//! 
+//! This could use a better name. The basic funcionality
+//! checks values for inclusion in a group. I don't
+//! think it's an equivalance class but maybe something
+//! along those lines.
+
+/// Basic matcher trait. Represents a class of values
+/// for which inclusion can be tested.
 pub trait Matcher {
     /// Type of value that can be matched.
     type Target;
