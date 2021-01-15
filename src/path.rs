@@ -39,8 +39,7 @@ where
 
 impl From<PathElem> for PathElemMatcher {
     fn from(v: PathElem) -> Self {
-        let PathElem(v) = v;
-        PathElemMatcher::new(v)
+        v.0.into()
     }
 }
 
@@ -63,7 +62,6 @@ impl ExtendedMatcher for PathElemMatcher {
     /// Match a specific resource
     fn match_only<T: Into<Self::Target>>(target: T) -> Self {
         target.into().into()
-        // PathElemMatcher::V(target.0.into())
     }
 
     /// Match any resouorce (i.e. test is const true)
