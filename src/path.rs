@@ -61,8 +61,9 @@ impl ExtendedMatcher for PathElemMatcher {
     type Target = PathElem;
 
     /// Match a specific resource
-    fn match_only(target: Self::Target) -> Self {
-        PathElemMatcher::V(target.0.into())
+    fn match_only<T: Into<Self::Target>>(target: T) -> Self {
+        target.into().into()
+        // PathElemMatcher::V(target.0.into())
     }
 
     /// Match any resouorce (i.e. test is const true)
@@ -172,7 +173,7 @@ mod tests {
 
     #[test]
     fn test_path_elem_ext_match_only() {
-        let matcher = PathElemMatcher::match_only("matchit".into());
+        let matcher = PathElemMatcher::match_only("matchit");
 
         let equivalent = PathElemMatcher::V("matchit".into());
 

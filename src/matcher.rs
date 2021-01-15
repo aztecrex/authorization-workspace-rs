@@ -21,7 +21,7 @@ pub trait ExtendedMatcher {
     type Target;
 
     /// Match a specific resource
-    fn match_only(target: Self::Target) -> Self;
+    fn match_only<T: Into<Self::Target>>(target: T) -> Self;
 
     /// Match any resouorce (i.e. test is const true)
     fn match_any() -> Self;
