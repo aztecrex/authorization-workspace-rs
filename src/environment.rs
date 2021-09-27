@@ -41,8 +41,6 @@ where
 /// Environment in which conditions always match and evaluations never fail.
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct PositiveEnvironment;
-// #[derive(PartialEq, Eq, Debug, Clone, Copy)]
-// pub struct PositiveEnvironmentError;
 
 impl ReliableEnvironment for PositiveEnvironment {
     type CExp = ();
@@ -55,13 +53,27 @@ impl ReliableEnvironment for PositiveEnvironment {
 /// Environment in which conditions never match and evaluations never fail.
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct NegativeEnvironment;
-// #[derive(PartialEq, Eq, Debug, Clone, Copy)]
-// pub struct NegativeEnvironmentError;
 
 impl ReliableEnvironment for NegativeEnvironment {
     type CExp = ();
     fn reliably_test_condition(&self, _: &Self::CExp) -> bool {
         false
+    }
+}
+
+/// Environment in which evaluation always fails
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub struct FailingEnvironment<Err>(Err);
+
+impl<E> Environment for FailingEnvironment<E>
+where
+    E: Clone,
+{
+    type CExp = ();
+    type Err = E;
+
+    fn test_condition(&self, _: &Self::CExp) -> Result<bool, Self::Err> {
+        Err(self.0.clone())
     }
 }
 
@@ -90,5 +102,11 @@ mod tests {
     pub fn test_negate_environment_does_not_match() {
         let env = &NegativeEnvironment;
         assert_eq!(env.test_condition(&()), Ok(false));
+    }
+
+    #[test]
+    pub fn test_failing_environment_fails() {
+        let env = &FailingEnvironment("Whoops");
+        assert_eq!(env.test_condition(&()), Err("Whoops"));
     }
 }
