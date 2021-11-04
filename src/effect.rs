@@ -33,13 +33,13 @@ impl Authorization for Effect {
 }
 
 /// Result of an authorization computation. Represents
-/// definite `Effect` plus an additional value representing an undetermined
+/// definite `Effect` plus an additional value representing no
 /// (i.e. silent) effect. It is equivalent to `Option<Effect>` but defined
 /// as a newtype for symbolic clarity and for implementing standard traits.
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Default)]
 pub struct ComputedEffect(Option<Effect>);
 
-/// Indefinite authorization
+/// No effect
 pub const SILENT: ComputedEffect = ComputedEffect(None);
 
 /// Definitely Authorized
