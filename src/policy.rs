@@ -25,9 +25,8 @@ where
     RMatch: Matcher<Target = R>,
     AMatch: Matcher<Target = A>,
 {
-    /// Determine if policy applies to a concrete resource and action.
-    ///
-    pub fn applies(&self, resource: &R, action: &A) -> bool {
+    /// Private helper
+    fn applies(&self, resource: &R, action: &A) -> bool {
         use Policy::*;
 
         match self {
