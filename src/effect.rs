@@ -154,11 +154,9 @@ pub fn combine_strict<I>(effs: I) -> ComputedEffect
 where
     I: IntoIterator<Item = ComputedEffect>,
 {
-    const INIT: Option<ComputedEffect> = None;
-
     effs.into_iter()
-        .fold(INIT, |a, e| match (a, e) {
-            (INIT, x) => Some(x),
+        .fold(None, |a, e| match (a, e) {
+            (None, x) => Some(x),
             (Some(SILENT), _) => Some(SILENT),
             (_, SILENT) => Some(SILENT),
             (Some(ALLOW), ALLOW) => Some(ALLOW),
