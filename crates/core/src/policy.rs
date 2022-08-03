@@ -12,7 +12,7 @@ pub enum Policy<RMatch, AMatch, CExp> {
     /// on a condition. If matched, it evaluates to `CompputedEffect::Fixed(_)`.
     Unconditional(RMatch, AMatch, Effect),
 
-    /// Applies if resource and action match and result is conditional on environment.
+    /// Applies if resource and action match and the condition applies in the evaluation environment.
     /// If matched, it evaluates to `ComputedEffect::Atomic(_)`.
     Conditional(RMatch, AMatch, Effect, CExp),
 
