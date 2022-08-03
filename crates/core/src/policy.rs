@@ -1,4 +1,5 @@
-//! Policy configurations.
+//! Policy configurations. A policy is a statement of explicit authorization or denial to
+//! perform an action on a resource.
 
 use super::dependent_effect::*;
 use super::effect::*;
