@@ -21,8 +21,7 @@ pub trait ReliableEnvironment {
     /// The type of conditional expression that can be evaluated in the environment.
     type CExp;
 
-    /// Test that a condition holds with respect to the environment. Can return
-    /// `Err(_)` if an environmental error is encountered.
+    /// Test that a condition holds with respect to the environment.
     fn reliably_test_condition(&self, exp: &Self::CExp) -> bool;
 }
 
