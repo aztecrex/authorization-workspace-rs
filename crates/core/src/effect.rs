@@ -131,7 +131,17 @@ where
 /// and only if access is authorized for each atomic principal. Silence is preserved
 /// so the result can be further combined if needed.
 ///
-/// # Examles
+/// A way to think about ths is by imagining a composite principal consisting of
+/// a user and, say an application. In order to allow an operation, both the user
+/// and application must be authorized. However, if either the determination is
+/// silent for either principal, we can consider the composite question of authorization
+/// to be unmatched, i.e. SILENT.
+///
+/// If a final result is SILENT, then authorization is denied per the basic rule but
+/// we return SILENCE so that the caller can understand the reason is that no
+/// policy reads on the request rather than an expicit denial.
+///
+/// # Examples
 ///
 /// ```
 /// use authorization_core::effect::*;
