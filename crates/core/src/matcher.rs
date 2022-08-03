@@ -109,7 +109,7 @@ mod tests {
     #[test]
     fn equality_matcher_always() {
         let m = StrMatcher::match_any();
-        assert!(m.test(&"bar"));
+        assert!(m.test(&"foo"));
     }
 
     #[test]
