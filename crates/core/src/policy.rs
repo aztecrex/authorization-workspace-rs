@@ -80,14 +80,6 @@ where
 mod tests {
 
     use super::*;
-    // use crate::action::*;
-    // use crate::resource::*;
-
-    // #[derive(Clone, Copy)]
-    // pub struct Matcher(&'static str);
-
-    type StrResource = &'static str;
-    type StrAction = &'static str;
 
     type StrMatcher = EqualityMatcher<&'static str>;
 
