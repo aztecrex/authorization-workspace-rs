@@ -43,8 +43,8 @@ where
 
         if self.applies(resource, action) {
             match self {
-                Conditional(_, _, eff, cond) => DependentEffect::Atomic(eff, cond),
-                Unconditional(_, _, eff) => DependentEffect::Fixed(eff),
+                Conditional(_, _, eff, cond) => DependentEffect::Conditional(eff, cond),
+                Unconditional(_, _, eff) => DependentEffect::Unconditional(eff),
                 Aggregate(ts) => DependentEffect::Aggregate(
                     ts.into_iter().map(|t| t.apply(resource, action)).collect(),
                 ),
@@ -116,7 +116,7 @@ mod tests {
 
         let actual = policy.apply(&R, &A);
 
-        assert_eq!(actual, DependentEffect::Fixed(Effect::ALLOW));
+        assert_eq!(actual, DependentEffect::Unconditional(Effect::ALLOW));
     }
 
     #[test]
@@ -127,7 +127,7 @@ mod tests {
 
         let actual = policy.apply(&R, &A);
 
-        assert_eq!(actual, DependentEffect::Fixed(Effect::DENY));
+        assert_eq!(actual, DependentEffect::Unconditional(Effect::DENY));
     }
 
     #[test]
@@ -159,7 +159,7 @@ mod tests {
 
         let actual = policy.apply(&R, &A);
 
-        assert_eq!(actual, DependentEffect::Atomic(Effect::ALLOW, ()));
+        assert_eq!(actual, DependentEffect::Conditional(Effect::ALLOW, ()));
     }
 
     #[test]
