@@ -18,7 +18,7 @@ pub enum DependentEffect<CExp> {
     /// evaluates to `Ok(Some(true))` in the environment.
     Conditional(Effect, CExp),
 
-    /// Combines multiple effects for  single principal. It is evaluated using
+    /// Combines multiple effects for single principal. It is evaluated using
     /// `authorization_core::effect::combine_non_strict(_)`
     NonStrict(Vec<DependentEffect<CExp>>),
 
