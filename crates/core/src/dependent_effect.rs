@@ -20,11 +20,11 @@ pub enum DependentEffect<CExp> {
 
     /// Combines multiple effects for  single principal. It is evaluated using
     /// `authorization_core::effect::combine_non_strict(_)`
-    Aggregate(Vec<DependentEffect<CExp>>),
+    NonStrict(Vec<DependentEffect<CExp>>),
 
     /// Combines the effects of multiple principals. It is evaluated using
     /// `authorization_core::effect::combine_strict(_)`
-    Disjoint(Vec<DependentEffect<CExp>>),
+    Strict(Vec<DependentEffect<CExp>>),
 }
 
 impl<CExp> DependentEffect<CExp> {
@@ -45,14 +45,14 @@ impl<CExp> DependentEffect<CExp> {
                 }
             }
             Unconditional(eff) => Ok(Some(*eff).into()),
-            Aggregate(perms) => {
+            NonStrict(perms) => {
                 let resolved: Result<Vec<ComputedEffect>, Env::Err> =
                     perms.iter().map(|p| p.resolve(environment)).collect();
                 let resolved = resolved?;
                 let resolved = combine_non_strict(resolved);
                 Ok(resolved)
             }
-            Disjoint(effs) => {
+            Strict(effs) => {
                 let resolved: Result<Vec<ComputedEffect>, Env::Err> =
                     effs.into_iter().map(|p| p.resolve(environment)).collect();
                 let resolved = resolved?;
@@ -188,7 +188,7 @@ mod tests {
     }
 
     fn check_aggregate(config: Vec<DependentEffect<TestExpression>>) {
-        let perm = DependentEffect::Aggregate(config.clone());
+        let perm = DependentEffect::NonStrict(config.clone());
 
         let actual = perm.resolve(&TestEnv);
 
@@ -288,10 +288,10 @@ mod tests {
     fn test_nested_condition() {
         use DependentEffect::*;
 
-        let perm = Aggregate(vec![
+        let perm = NonStrict(vec![
             Conditional(Effect::DENY, 1u32),
             Conditional(Effect::DENY, 2u32),
-            Aggregate(vec![
+            NonStrict(vec![
                 Conditional(Effect::DENY, 3u32),
                 Conditional(Effect::ALLOW, 4u32),
             ]),
@@ -319,7 +319,7 @@ mod tests {
             Unconditional(Effect::ALLOW),
             Unconditional(Effect::DENY),
             Silent,
-            Aggregate(vec![
+            NonStrict(vec![
                 Conditional(Effect::ALLOW, 1u32),
                 Conditional(Effect::DENY, 2u32),
             ]),
@@ -348,7 +348,7 @@ mod tests {
             Unconditional(Effect::ALLOW),
             Unconditional(Effect::DENY),
             Silent,
-            Aggregate(vec![
+            NonStrict(vec![
                 Unconditional(Effect::ALLOW),
                 Conditional(Effect::ALLOW, TestExpression::Error),
                 Unconditional(Effect::DENY),
@@ -362,7 +362,7 @@ mod tests {
 
     #[test]
     fn test_resolve_disjoint_empty() {
-        let effect = DependentEffect::Disjoint(vec![]);
+        let effect = DependentEffect::Strict(vec![]);
 
         let actual = effect.resolve(&TestEnv);
 
@@ -372,7 +372,7 @@ mod tests {
     #[test]
     fn test_resolve_disjoint_all_silent() {
         let effect =
-            DependentEffect::Disjoint(vec![DependentEffect::Silent, DependentEffect::Silent]);
+            DependentEffect::Strict(vec![DependentEffect::Silent, DependentEffect::Silent]);
 
         let actual = effect.resolve(&TestEnv);
 
@@ -382,7 +382,7 @@ mod tests {
     #[test]
     fn test_resolve_disjoint_error() {
         use DependentEffect::*;
-        let effect = DependentEffect::Disjoint(vec![
+        let effect = DependentEffect::Strict(vec![
             Unconditional(Effect::ALLOW),
             Conditional(Effect::ALLOW, TestExpression::Error),
         ]);
@@ -400,7 +400,7 @@ mod tests {
         where
             I: IntoIterator<Item = DependentEffect<TestExpression>> + Clone,
         {
-            let eff = DependentEffect::Disjoint(effs.clone().into_iter().collect());
+            let eff = DependentEffect::Strict(effs.clone().into_iter().collect());
 
             let actual = eff.resolve(&TestEnv);
 

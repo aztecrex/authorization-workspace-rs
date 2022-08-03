@@ -45,7 +45,7 @@ where
             match self {
                 Conditional(_, _, eff, cond) => DependentEffect::Conditional(eff, cond),
                 Unconditional(_, _, eff) => DependentEffect::Unconditional(eff),
-                Aggregate(ts) => DependentEffect::Aggregate(
+                Aggregate(ts) => DependentEffect::NonStrict(
                     ts.into_iter().map(|t| t.apply(resource, action)).collect(),
                 ),
             }
@@ -68,7 +68,7 @@ where
     RMatch: Matcher<Target = R>,
     AMatch: Matcher<Target = A>,
 {
-    DependentEffect::Disjoint(
+    DependentEffect::Strict(
         policies
             .into_iter()
             .map(|p| p.apply(resource, action))
@@ -197,7 +197,7 @@ mod tests {
         let actual = policy.apply(&R, &A);
         assert_eq!(
             actual,
-            DependentEffect::Aggregate(terms.iter().map(|p| p.clone().apply(&R, &A)).collect())
+            DependentEffect::NonStrict(terms.iter().map(|p| p.clone().apply(&R, &A)).collect())
         );
     }
 
@@ -230,7 +230,7 @@ mod tests {
 
         let actual = apply_disjoint(policies.clone(), &r, &a);
 
-        let expected = DependentEffect::Disjoint(
+        let expected = DependentEffect::Strict(
             policies
                 .iter()
                 .map(|p| p.clone().apply(&"r".into(), &"a".into()))
