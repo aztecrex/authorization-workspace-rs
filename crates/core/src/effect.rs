@@ -244,5 +244,7 @@ mod tests {
         check(vec![SILENT, DENY, SILENT, DENY, SILENT], SILENT);
         check(vec![SILENT, DENY, SILENT, ALLOW, SILENT], SILENT);
         check(vec![SILENT, ALLOW, SILENT, ALLOW, SILENT], SILENT);
+        check(vec![ALLOW, SILENT, SILENT, ALLOW, SILENT], SILENT);
+        check(vec![DENY, SILENT, SILENT, ALLOW, SILENT], SILENT);
     }
 }
