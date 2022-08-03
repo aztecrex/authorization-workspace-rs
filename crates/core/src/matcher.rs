@@ -29,7 +29,8 @@ pub trait ExtendedMatcher: Matcher {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-/// Wrapper for direct equality matching.
+/// Wrapper for direct equality matching. Use this to convert anything
+/// that implements `Eq` into an extended matcher.
 pub enum EqualityMatcher<T> {
     /// Match a specific value.
     Only(T),
@@ -75,5 +76,49 @@ where
 
     fn match_none() -> Self {
         EqualityMatcher::None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    use crate::matcher::EqualityMatcher;
+
+    type StrMatcher = EqualityMatcher<&'static str>;
+
+    #[test]
+    fn equality_matcher_eq() {
+        let m = StrMatcher::match_only("foo");
+        assert!(m.test(&"foo"));
+    }
+
+    #[test]
+    fn equality_matcher_neq() {
+        let m = StrMatcher::match_only("foo");
+        assert!(!m.test(&"bar"));
+    }
+
+    #[test]
+    fn equality_matcher_never() {
+        let m = StrMatcher::match_none();
+        assert!(!m.test(&"foo"));
+    }
+
+    #[test]
+    fn equality_matcher_always() {
+        let m = StrMatcher::match_any();
+        assert!(m.test(&"bar"));
+    }
+
+    #[test]
+    fn equality_matcher_into() {
+        let foo = "foo";
+        let mx = StrMatcher::match_only(foo);
+        let m: StrMatcher = foo.into();
+
+        assert_eq!(m.test(&foo), mx.test(&foo));
+        assert_eq!(m.test(&"not foo"), mx.test(&"not foo"))
     }
 }
