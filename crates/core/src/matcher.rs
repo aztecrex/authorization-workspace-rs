@@ -17,11 +17,9 @@ pub trait Matcher {
 
 /// Convenience methods for matchers. Non-trivial matchers should implement
 /// this.
-pub trait ExtendedMatcher {
-    type Target;
-
+pub trait ExtendedMatcher: Matcher {
     /// Match a specific resource
-    fn match_only<T: Into<Self::Target>>(target: T) -> Self;
+    fn match_only(target: <Self as Matcher>::Target) -> Self;
 
     /// Match any resouorce (i.e. test is const true)
     fn match_any() -> Self;
@@ -30,9 +28,52 @@ pub trait ExtendedMatcher {
     fn match_none() -> Self;
 }
 
-// impl <T, M> From<T> for M: ExtendedMatcher<Target = T>
-// {
-//     fn from(v: T) -> Self {
-//         M::match_only(v)
-//     }
-// }
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+/// Wrapper for direct equality matching.
+pub enum EqualityMatcher<T> {
+    /// Match a specific value.
+    Only(T),
+    /// Match any value.
+    Any,
+    /// Match nothing.
+    None,
+}
+
+impl<T> From<T> for EqualityMatcher<T> {
+    fn from(target: T) -> Self {
+        EqualityMatcher::Only(target)
+    }
+}
+
+impl<T> Matcher for EqualityMatcher<T>
+where
+    T: Eq,
+{
+    type Target = T;
+
+    fn test(&self, target: &Self::Target) -> bool {
+        match self {
+            &EqualityMatcher::Only(ref t) => t == target,
+            &EqualityMatcher::Any => true,
+            &EqualityMatcher::None => false,
+        }
+    }
+}
+
+impl<T> ExtendedMatcher for EqualityMatcher<T>
+where
+    EqualityMatcher<T>: Matcher,
+    <Self as Matcher>::Target: Into<Self>,
+{
+    fn match_only(target: <Self as Matcher>::Target) -> Self {
+        target.into()
+    }
+
+    fn match_any() -> Self {
+        EqualityMatcher::Any
+    }
+
+    fn match_none() -> Self {
+        EqualityMatcher::None
+    }
+}

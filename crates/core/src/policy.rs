@@ -80,122 +80,157 @@ where
 mod tests {
 
     use super::*;
-    use crate::action::*;
-    use crate::resource::*;
+    // use crate::action::*;
+    // use crate::resource::*;
 
-    #[derive(Clone, Copy)]
-    pub struct Matcher(&'static str);
+    // #[derive(Clone, Copy)]
+    // pub struct Matcher(&'static str);
 
-    static MATCH_R: StrResource = StrResource("r");
-    static MISS_R: StrResource = StrResource("miss");
-    static MATCH_A: StrAction = StrAction("a");
-    static MATCH_MISS: StrAction = StrAction("miss");
+    type StrResource = &'static str;
+    type StrAction = &'static str;
+
+    type StrMatcher = EqualityMatcher<&'static str>;
+
+    static R: &'static str = "r";
+    static R2: &'static str = "r2";
+    static A: &'static str = "a";
+    static A2: &'static str = "a2";
+
+    struct Matchers {
+        m_r: StrMatcher,
+        m_r2: StrMatcher,
+        m_a: StrMatcher,
+        m_a2: StrMatcher,
+        miss: StrMatcher,
+    }
+
+    impl Matchers {
+        fn new() -> Self {
+            Self {
+                m_r: R.into(),
+                m_r2: R2.into(),
+                m_a: A.into(),
+                m_a2: A2.into(),
+                miss: "yeah, miss".into(),
+            }
+        }
+    }
 
     #[test]
     fn test_unconditional_match_allow() {
-        let policy = Policy::<_, _, ()>::Unconditional(MATCH_R, MATCH_A, Effect::ALLOW);
+        let Matchers { m_r, m_a, .. } = Matchers::new();
 
-        let actual = policy.apply(&"r".into(), &"a".into());
+        let policy = Policy::<_, _, ()>::Unconditional(m_r, m_a, Effect::ALLOW);
+
+        let actual = policy.apply(&R, &A);
 
         assert_eq!(actual, DependentEffect::Fixed(Effect::ALLOW));
     }
 
     #[test]
     fn test_unconditional_match_deny() {
-        let policy = Policy::<_, _, ()>::Unconditional(MATCH_R, MATCH_A, Effect::DENY);
+        let Matchers { m_r, m_a, .. } = Matchers::new();
 
-        let actual = policy.apply(&"r".into(), &"a".into());
+        let policy = Policy::<_, _, ()>::Unconditional(m_r, m_a, Effect::DENY);
+
+        let actual = policy.apply(&R, &A);
 
         assert_eq!(actual, DependentEffect::Fixed(Effect::DENY));
     }
 
     #[test]
     fn test_unconditional_unmatched_resource() {
-        let policy = Policy::<_, _, ()>::Unconditional(MISS_R, MATCH_A, Effect::DENY);
+        let Matchers { miss, m_a, .. } = Matchers::new();
 
-        let actual = policy.apply(&"r".into(), &"a".into());
+        let policy = Policy::<_, _, ()>::Unconditional(miss, m_a, Effect::DENY);
+
+        let actual = policy.apply(&R, &A);
 
         assert_eq!(actual, DependentEffect::Silent);
     }
 
     #[test]
     fn test_unconditional_unmatched_action() {
-        let policy = Policy::<_, _, ()>::Unconditional(MATCH_R, MATCH_MISS, Effect::DENY);
+        let Matchers { m_r, miss, .. } = Matchers::new();
 
-        let actual = policy.apply(&"r".into(), &"a".into());
+        let policy = Policy::<_, _, ()>::Unconditional(m_r, miss, Effect::DENY);
+
+        let actual = policy.apply(&R, &A);
 
         assert_eq!(actual, DependentEffect::Silent);
     }
 
     #[test]
     fn test_conditional_matched_allow() {
-        let policy = Policy::Conditional(MATCH_R, MATCH_A, Effect::ALLOW, ());
+        let Matchers { m_r, m_a, .. } = Matchers::new();
+        let policy = Policy::Conditional(m_r, m_a, Effect::ALLOW, ());
 
-        let actual = policy.apply(&"r".into(), &"a".into());
+        let actual = policy.apply(&R, &A);
 
         assert_eq!(actual, DependentEffect::Atomic(Effect::ALLOW, ()));
     }
 
     #[test]
     fn test_aggregate() {
-        let match_r1: StrResource = "r1".into();
-        let match_r2: StrResource = "r2".into();
-        let match_a1: StrAction = "a1".into();
-        let match_a2: StrAction = "a2".into();
+        let Matchers {
+            m_r,
+            m_r2,
+            m_a,
+            m_a2,
+            ..
+        } = Matchers::new();
+
         let terms = vec![
-            Policy::Conditional(match_r1, match_a1, Effect::ALLOW, ()),
-            Policy::Conditional(match_r2, match_a1, Effect::ALLOW, ()),
-            Policy::Conditional(match_r1, match_a2, Effect::ALLOW, ()),
-            Policy::Conditional(match_r2, match_a2, Effect::ALLOW, ()),
-            Policy::Unconditional(match_r1, match_a1, Effect::ALLOW),
-            Policy::Unconditional(match_r2, match_a1, Effect::ALLOW),
-            Policy::Unconditional(match_r1, match_a2, Effect::ALLOW),
-            Policy::Unconditional(match_r2, match_a2, Effect::ALLOW),
+            Policy::Conditional(m_r, m_a, Effect::ALLOW, ()),
+            Policy::Conditional(m_r2, m_a, Effect::ALLOW, ()),
+            Policy::Conditional(m_r, m_a2, Effect::ALLOW, ()),
+            Policy::Conditional(m_r2, m_a2, Effect::ALLOW, ()),
+            Policy::Unconditional(m_r, m_a, Effect::ALLOW),
+            Policy::Unconditional(m_r2, m_a, Effect::ALLOW),
+            Policy::Unconditional(m_r, m_a2, Effect::ALLOW),
+            Policy::Unconditional(m_r2, m_a2, Effect::ALLOW),
             Policy::Aggregate(vec![
-                Policy::Conditional(match_r1, match_a1, Effect::ALLOW, ()),
-                Policy::Conditional(match_r2, match_a1, Effect::ALLOW, ()),
-                Policy::Conditional(match_r1, match_a2, Effect::ALLOW, ()),
-                Policy::Conditional(match_r2, match_a2, Effect::ALLOW, ()),
-                Policy::Unconditional(match_r1, match_a1, Effect::ALLOW),
-                Policy::Unconditional(match_r2, match_a1, Effect::ALLOW),
-                Policy::Unconditional(match_r1, match_a2, Effect::ALLOW),
-                Policy::Unconditional(match_r2, match_a2, Effect::ALLOW),
+                Policy::Conditional(m_r, m_a, Effect::ALLOW, ()),
+                Policy::Conditional(m_r2, m_a, Effect::ALLOW, ()),
+                Policy::Conditional(m_r, m_a2, Effect::ALLOW, ()),
+                Policy::Conditional(m_r2, m_a2, Effect::ALLOW, ()),
+                Policy::Unconditional(m_r, m_a, Effect::ALLOW),
+                Policy::Unconditional(m_r2, m_a, Effect::ALLOW),
+                Policy::Unconditional(m_r, m_a2, Effect::ALLOW),
+                Policy::Unconditional(m_r2, m_a2, Effect::ALLOW),
             ]),
         ];
         let policy = Policy::Aggregate(terms.clone());
 
-        let actual = policy.apply(&"r1".into(), &"a1".into());
+        let actual = policy.apply(&R, &A);
         assert_eq!(
             actual,
-            DependentEffect::Aggregate(
-                terms
-                    .iter()
-                    .map(|p| p.clone().apply(&"r1".into(), &"a1".into()))
-                    .collect()
-            )
+            DependentEffect::Aggregate(terms.iter().map(|p| p.clone().apply(&R, &A)).collect())
         );
     }
 
     #[test]
     fn test_disjoint() {
+        let Matchers { m_r, m_a, miss, .. } = Matchers::new();
+
         let policies = vec![
-            Policy::Conditional(MATCH_R, MATCH_A, Effect::ALLOW, 18),
-            Policy::Conditional(MATCH_R, MATCH_A, Effect::DENY, 19),
-            Policy::Unconditional(MATCH_R, MATCH_A, Effect::ALLOW),
-            Policy::Unconditional(MATCH_R, MATCH_A, Effect::DENY),
-            Policy::Conditional(MATCH_R, MATCH_MISS, Effect::ALLOW, 20),
-            Policy::Conditional(MISS_R, MATCH_A, Effect::DENY, 21),
-            Policy::Unconditional(MISS_R, MATCH_A, Effect::ALLOW),
-            Policy::Unconditional(MATCH_R, MATCH_MISS, Effect::DENY),
+            Policy::Conditional(m_r, m_a, Effect::ALLOW, 18),
+            Policy::Conditional(m_r, m_a, Effect::DENY, 19),
+            Policy::Unconditional(m_r, m_a, Effect::ALLOW),
+            Policy::Unconditional(m_r, m_a, Effect::DENY),
+            Policy::Conditional(m_r, miss, Effect::ALLOW, 20),
+            Policy::Conditional(miss, m_a, Effect::DENY, 21),
+            Policy::Unconditional(miss, m_a, Effect::ALLOW),
+            Policy::Unconditional(m_r, miss, Effect::DENY),
             Policy::Aggregate(vec![Policy::Aggregate(vec![
-                Policy::Conditional(MATCH_R, MATCH_A, Effect::ALLOW, 18),
-                Policy::Conditional(MATCH_R, MATCH_A, Effect::DENY, 19),
-                Policy::Unconditional(MATCH_R, MATCH_A, Effect::ALLOW),
-                Policy::Unconditional(MATCH_R, MATCH_A, Effect::DENY),
-                Policy::Conditional(MATCH_R, MATCH_MISS, Effect::ALLOW, 20),
-                Policy::Conditional(MISS_R, MATCH_A, Effect::DENY, 21),
-                Policy::Unconditional(MISS_R, MATCH_A, Effect::ALLOW),
-                Policy::Unconditional(MATCH_R, MATCH_MISS, Effect::DENY),
+                Policy::Conditional(m_r, m_a, Effect::ALLOW, 18),
+                Policy::Conditional(m_r, m_a, Effect::DENY, 19),
+                Policy::Unconditional(m_r, m_a, Effect::ALLOW),
+                Policy::Unconditional(m_r, m_a, Effect::DENY),
+                Policy::Conditional(m_r, miss, Effect::ALLOW, 20),
+                Policy::Conditional(miss, m_a, Effect::DENY, 21),
+                Policy::Unconditional(miss, m_a, Effect::ALLOW),
+                Policy::Unconditional(m_r, miss, Effect::DENY),
             ])]),
         ];
         let r = "r".into();

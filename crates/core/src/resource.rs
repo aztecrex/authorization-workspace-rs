@@ -1,15 +1,15 @@
 use super::matcher::*;
-use super::path::*;
+// use super::path::*;
 
-/// Trait for matching resources. When evaluating a policy, this is used to determine if
-/// the policy applies with respect to a concrete resource.
-pub trait ResourceMatch {
-    /// The type of resource that can be matched.
-    type Resource;
+// /// Trait for matching resources. When evaluating a policy, this is used to determine if
+// /// the policy applies with respect to a concrete resource.
+// pub trait ResourceMatch {
+//     /// The type of resource that can be matched.
+//     type Resource;
 
-    /// Determine if a concrete resource matches
-    fn test(&self, resource: &Self::Resource) -> bool;
-}
+//     /// Determine if a concrete resource matches
+//     fn test(&self, resource: &Self::Resource) -> bool;
+// }
 
 /// Trivial resource represented by a string. Can also be used as a matcher.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -34,8 +34,8 @@ impl<'a> Matcher for StrResource<'a> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-struct ResourcePath(Vec<PathElem>);
+// #[derive(Debug, PartialEq, Eq, Clone)]
+// struct ResourcePath(Vec<PathElem>);
 
 #[cfg(test)]
 mod tests {
