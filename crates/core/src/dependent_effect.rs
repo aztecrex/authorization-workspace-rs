@@ -29,36 +29,34 @@ pub enum DependentEffect<CExp> {
 
 impl<CExp> DependentEffect<CExp> {
     /// Evaluate dependent effect in an envionmental context.
-    pub fn resolve<Env>(&self, environment: &Env) -> Result<ComputedEffect, Env::Err>
+    pub fn resolve<Env>(&self, environment: &Env) -> ComputedEffect
     where
         Env: Environment<CExp = CExp>,
     {
         use DependentEffect::*;
         match self {
-            Silent => Ok(SILENT),
+            Silent => SILENT,
             Conditional(eff, cexp) => {
-                let matched = environment.test_condition(cexp)?;
-                if matched {
-                    Ok(Some(*eff).into())
+                let applies = environment.evaluate(cexp);
+                if applies {
+                    Some(*eff).into()
                 } else {
-                    Ok(SILENT)
+                    SILENT
                 }
             }
-            Unconditional(eff) => Ok(Some(*eff).into()),
+            Unconditional(eff) => Some(*eff).into(),
             NonStrict(perms) => {
-                let resolved: Result<Vec<ComputedEffect>, Env::Err> =
+                let resolved: Vec<ComputedEffect> =
                     perms.iter().map(|p| p.resolve(environment)).collect();
-                let resolved = resolved?;
                 let resolved = combine_non_strict(resolved);
-                Ok(resolved)
+                resolved
             }
             Strict(effs) => {
-                let resolved: Result<Vec<ComputedEffect>, Env::Err> =
+                let resolved: Vec<ComputedEffect> =
                     effs.into_iter().map(|p| p.resolve(environment)).collect();
-                let resolved = resolved?;
                 let resolved = combine_strict(resolved);
 
-                Ok(resolved)
+                resolved
             }
         }
     }
@@ -67,7 +65,7 @@ impl<CExp> DependentEffect<CExp> {
 pub fn resolve_all<'a, CExp: 'a, Env>(
     perms: impl Iterator<Item = &'a DependentEffect<CExp>>,
     environment: &Env,
-) -> Result<Vec<ComputedEffect>, Env::Err>
+) -> Vec<ComputedEffect>
 where
     Env: Environment<CExp = CExp>,
 {
@@ -83,31 +81,27 @@ mod tests {
     enum TestExpression {
         Match,
         Miss,
-        Error,
     }
 
     struct TestEnv;
 
     impl Environment for TestEnv {
-        type Err = ();
         type CExp = TestExpression;
 
-        fn test_condition(&self, exp: &Self::CExp) -> Result<bool, Self::Err> {
+        fn evaluate(&self, exp: &Self::CExp) -> bool {
             use TestExpression::*;
             match exp {
-                Match => Ok(true),
-                Miss => Ok(false),
-                Error => Err(()),
+                Match => true,
+                Miss => false,
             }
         }
     }
 
     impl Environment for u32 {
-        type Err = ();
         type CExp = u32;
 
-        fn test_condition(&self, exp: &Self::CExp) -> Result<bool, Self::Err> {
-            Ok(self == exp)
+        fn evaluate(&self, exp: &Self::CExp) -> bool {
+            self == exp
         }
     }
 
@@ -117,7 +111,7 @@ mod tests {
 
         let actual = perm.resolve(&TestEnv);
 
-        assert_eq!(actual, Ok(SILENT));
+        assert_eq!(actual, SILENT);
     }
 
     #[test]
@@ -126,7 +120,7 @@ mod tests {
 
         let actual = perm.resolve(&TestEnv);
 
-        assert_eq!(actual, Ok(ALLOW));
+        assert_eq!(actual, ALLOW);
     }
 
     #[test]
@@ -135,7 +129,7 @@ mod tests {
 
         let actual = perm.resolve(&TestEnv);
 
-        assert_eq!(actual, Ok(DENY));
+        assert_eq!(actual, DENY);
     }
 
     #[test]
@@ -144,7 +138,7 @@ mod tests {
 
         let actual = perm.resolve(&TestEnv);
 
-        assert_eq!(actual, Ok(SILENT));
+        assert_eq!(actual, SILENT);
     }
 
     #[test]
@@ -153,21 +147,21 @@ mod tests {
 
         let actual = perm.resolve(&TestEnv);
 
-        assert_eq!(actual, Ok(SILENT));
+        assert_eq!(actual, SILENT);
     }
 
-    #[test]
-    fn resolve_atomic_error() {
-        let perm = DependentEffect::Conditional(Effect::ALLOW, TestExpression::Error);
+    // #[test]
+    // fn resolve_atomic_error() {
+    //     let perm = DependentEffect::Conditional(Effect::ALLOW, TestExpression::Error);
 
-        let actual = perm.resolve(&TestEnv);
+    //     let actual = perm.resolve(&TestEnv);
 
-        assert!(actual.is_err());
-        assert_eq!(
-            actual.unwrap_err(),
-            TestEnv.test_condition(&TestExpression::Error).unwrap_err()
-        );
-    }
+    //     assert!(actual.is_err());
+    //     assert_eq!(
+    //         actual.unwrap_err(),
+    //         TestEnv.evalutate(&TestExpression::Error).unwrap_err()
+    //     );
+    // }
 
     #[test]
     fn resolve_fixed_allow() {
@@ -175,7 +169,7 @@ mod tests {
 
         let actual = perm.resolve(&TestEnv);
 
-        assert_eq!(actual, Ok(ALLOW));
+        assert_eq!(actual, ALLOW);
     }
 
     #[test]
@@ -184,7 +178,7 @@ mod tests {
 
         let actual = perm.resolve(&TestEnv);
 
-        assert_eq!(actual, Ok(DENY));
+        assert_eq!(actual, DENY);
     }
 
     fn check_aggregate(config: Vec<DependentEffect<TestExpression>>) {
@@ -192,9 +186,8 @@ mod tests {
 
         let actual = perm.resolve(&TestEnv);
 
-        let expect: Result<Vec<ComputedEffect>, ()> =
-            config.into_iter().map(|e| e.resolve(&TestEnv)).collect();
-        let expect = expect.map(combine_non_strict);
+        let expect: Vec<ComputedEffect> = config.into_iter().map(|e| e.resolve(&TestEnv)).collect();
+        let expect = combine_non_strict(expect);
 
         assert_eq!(actual, expect);
     }
@@ -298,13 +291,13 @@ mod tests {
         ]);
 
         let actual = perm.resolve(&3u32);
-        assert_eq!(actual, Ok(DENY));
+        assert_eq!(actual, DENY);
 
         let actual = perm.resolve(&4u32);
-        assert_eq!(actual, Ok(ALLOW));
+        assert_eq!(actual, ALLOW);
 
         let actual = perm.resolve(&100u32);
-        assert_eq!(actual, Ok(SILENT));
+        assert_eq!(actual, SILENT);
     }
 
     #[test]
@@ -328,37 +321,35 @@ mod tests {
         let actual = resolve_all(perms.iter(), &1);
         assert_eq!(
             actual,
-            Ok(vec![
-                ALLOW, SILENT, DENY, SILENT, ALLOW, DENY, SILENT, ALLOW,
-            ])
+            vec![ALLOW, SILENT, DENY, SILENT, ALLOW, DENY, SILENT, ALLOW,]
         );
 
         let actual = resolve_all(perms.iter(), &2);
         assert_eq!(
             actual,
-            Ok(vec![SILENT, ALLOW, SILENT, DENY, ALLOW, DENY, SILENT, DENY,])
+            vec![SILENT, ALLOW, SILENT, DENY, ALLOW, DENY, SILENT, DENY,]
         );
     }
 
-    #[test]
-    fn test_resolve_all_err() {
-        use DependentEffect::*;
+    // #[test]
+    // fn test_resolve_all_err() {
+    //     use DependentEffect::*;
 
-        let perms = vec![
-            Unconditional(Effect::ALLOW),
-            Unconditional(Effect::DENY),
-            Silent,
-            NonStrict(vec![
-                Unconditional(Effect::ALLOW),
-                Conditional(Effect::ALLOW, TestExpression::Error),
-                Unconditional(Effect::DENY),
-            ]),
-        ];
+    //     let perms = vec![
+    //         Unconditional(Effect::ALLOW),
+    //         Unconditional(Effect::DENY),
+    //         Silent,
+    //         NonStrict(vec![
+    //             Unconditional(Effect::ALLOW),
+    //             Conditional(Effect::ALLOW, TestExpression::Error),
+    //             Unconditional(Effect::DENY),
+    //         ]),
+    //     ];
 
-        let actual = resolve_all(perms.iter(), &TestEnv);
+    //     let actual = resolve_all(perms.iter(), &TestEnv);
 
-        assert_eq!(actual, Err(()));
-    }
+    //     assert_eq!(actual, Err(()));
+    // }
 
     #[test]
     fn test_resolve_disjoint_empty() {
@@ -366,7 +357,7 @@ mod tests {
 
         let actual = effect.resolve(&TestEnv);
 
-        assert_eq!(actual, Ok(SILENT))
+        assert_eq!(actual, SILENT)
     }
 
     #[test]
@@ -376,21 +367,21 @@ mod tests {
 
         let actual = effect.resolve(&TestEnv);
 
-        assert_eq!(actual, Ok(SILENT))
+        assert_eq!(actual, SILENT)
     }
 
-    #[test]
-    fn test_resolve_disjoint_error() {
-        use DependentEffect::*;
-        let effect = DependentEffect::Strict(vec![
-            Unconditional(Effect::ALLOW),
-            Conditional(Effect::ALLOW, TestExpression::Error),
-        ]);
+    // #[test]
+    // fn test_resolve_disjoint_error() {
+    //     use DependentEffect::*;
+    //     let effect = DependentEffect::Strict(vec![
+    //         Unconditional(Effect::ALLOW),
+    //         Conditional(Effect::ALLOW, TestExpression::Error),
+    //     ]);
 
-        let actual = effect.resolve(&TestEnv);
+    //     let actual = effect.resolve(&TestEnv);
 
-        assert_eq!(actual, Err(()));
-    }
+    //     assert_eq!(actual, Err(()));
+    // }
 
     #[test]
     fn test_resolve_disjoint() {
@@ -404,9 +395,9 @@ mod tests {
 
             let actual = eff.resolve(&TestEnv);
 
-            let expected: Result<Vec<ComputedEffect>, ()> =
+            let expected: Vec<ComputedEffect> =
                 effs.into_iter().map(|e| e.resolve(&TestEnv)).collect();
-            let expected = expected.map(combine_strict);
+            let expected = combine_strict(expected);
 
             assert_eq!(actual, expected);
         }
