@@ -150,19 +150,6 @@ mod tests {
         assert_eq!(actual, SILENT);
     }
 
-    // #[test]
-    // fn resolve_atomic_error() {
-    //     let perm = DependentEffect::Conditional(Effect::ALLOW, TestExpression::Error);
-
-    //     let actual = perm.resolve(&TestEnv);
-
-    //     assert!(actual.is_err());
-    //     assert_eq!(
-    //         actual.unwrap_err(),
-    //         TestEnv.evalutate(&TestExpression::Error).unwrap_err()
-    //     );
-    // }
-
     #[test]
     fn resolve_fixed_allow() {
         let perm = DependentEffect::<TestExpression>::Unconditional(Effect::ALLOW);
@@ -331,26 +318,6 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn test_resolve_all_err() {
-    //     use DependentEffect::*;
-
-    //     let perms = vec![
-    //         Unconditional(Effect::ALLOW),
-    //         Unconditional(Effect::DENY),
-    //         Silent,
-    //         NonStrict(vec![
-    //             Unconditional(Effect::ALLOW),
-    //             Conditional(Effect::ALLOW, TestExpression::Error),
-    //             Unconditional(Effect::DENY),
-    //         ]),
-    //     ];
-
-    //     let actual = resolve_all(perms.iter(), &TestEnv);
-
-    //     assert_eq!(actual, Err(()));
-    // }
-
     #[test]
     fn test_resolve_disjoint_empty() {
         let effect = DependentEffect::Strict(vec![]);
@@ -369,19 +336,6 @@ mod tests {
 
         assert_eq!(actual, SILENT)
     }
-
-    // #[test]
-    // fn test_resolve_disjoint_error() {
-    //     use DependentEffect::*;
-    //     let effect = DependentEffect::Strict(vec![
-    //         Unconditional(Effect::ALLOW),
-    //         Conditional(Effect::ALLOW, TestExpression::Error),
-    //     ]);
-
-    //     let actual = effect.resolve(&TestEnv);
-
-    //     assert_eq!(actual, Err(()));
-    // }
 
     #[test]
     fn test_resolve_disjoint() {
