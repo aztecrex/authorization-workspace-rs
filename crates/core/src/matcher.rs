@@ -54,9 +54,9 @@ where
 
     fn test(&self, target: &Self::Target) -> bool {
         match self {
-            &EqualityMatcher::Only(ref t) => t == target,
-            &EqualityMatcher::Any => true,
-            &EqualityMatcher::None => false,
+            EqualityMatcher::Only(ref t) => t == target,
+            EqualityMatcher::Any => true,
+            EqualityMatcher::None => false,
         }
     }
 }
