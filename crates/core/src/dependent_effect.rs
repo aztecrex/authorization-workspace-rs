@@ -29,7 +29,7 @@ pub enum DependentEffect<CExp> {
 
 impl<CExp> DependentEffect<CExp> {
     /// Evaluate dependent effect in an envionmental context.
-    pub fn resolve<Env>(&self, environment: &Env) -> Result<ComputedEffect, Env::Err>
+    pub fn resolve<Env>(&self, environment: &Env) -> ComputedEffect
     where
         Env: Environment<CExp = CExp>,
     {
@@ -67,7 +67,7 @@ impl<CExp> DependentEffect<CExp> {
 pub fn resolve_all<'a, CExp: 'a, Env>(
     perms: impl Iterator<Item = &'a DependentEffect<CExp>>,
     environment: &Env,
-) -> Result<Vec<ComputedEffect>, Env::Err>
+) -> Vec<ComputedEffect>
 where
     Env: Environment<CExp = CExp>,
 {
@@ -83,31 +83,27 @@ mod tests {
     enum TestExpression {
         Match,
         Miss,
-        Error,
     }
 
     struct TestEnv;
 
     impl Environment for TestEnv {
-        type Err = ();
         type CExp = TestExpression;
 
-        fn test_condition(&self, exp: &Self::CExp) -> Result<bool, Self::Err> {
+        fn evaluate(&self, exp: &Self::CExp) -> bool {
             use TestExpression::*;
             match exp {
-                Match => Ok(true),
-                Miss => Ok(false),
-                Error => Err(()),
+                Match => true,
+                Miss => false,
             }
         }
     }
 
     impl Environment for u32 {
-        type Err = ();
         type CExp = u32;
 
-        fn test_condition(&self, exp: &Self::CExp) -> Result<bool, Self::Err> {
-            Ok(self == exp)
+        fn evaluate(&self, exp: &Self::CExp) -> bool {
+            self == exp
         }
     }
 
