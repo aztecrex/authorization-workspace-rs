@@ -31,8 +31,8 @@ where
         use Policy::*;
 
         match self {
-            Conditional(rmatch, amatch, _, _) => rmatch.test(&resource) && amatch.test(&action),
-            Unconditional(rmatch, amatch, _) => rmatch.test(&resource) && amatch.test(&action),
+            Conditional(rmatch, amatch, _, _) => rmatch.test(resource) && amatch.test(action),
+            Unconditional(rmatch, amatch, _) => rmatch.test(resource) && amatch.test(action),
             Aggregate(_) => true,
         }
     }
@@ -84,10 +84,10 @@ mod tests {
 
     type StrMatcher = EqualityMatcher<&'static str>;
 
-    static R: &'static str = "r";
-    static R2: &'static str = "r2";
-    static A: &'static str = "a";
-    static A2: &'static str = "a2";
+    static R: &str = "r";
+    static R2: &str = "r2";
+    static A: &str = "a";
+    static A2: &str = "a2";
 
     struct Matchers {
         m_r: StrMatcher,
@@ -226,15 +226,15 @@ mod tests {
                 Policy::Unconditional(m_r, miss, Effect::DENY),
             ])]),
         ];
-        let r = "r".into();
-        let a = "a".into();
+        let r = "r";
+        let a = "a";
 
         let actual = apply_disjoint(policies.clone(), &r, &a);
 
         let expected = DependentEffect::Strict(
             policies
                 .iter()
-                .map(|p| p.clone().apply(&"r".into(), &"a".into()))
+                .map(|p| p.clone().apply(&"r", &"a"))
                 .collect(),
         );
         assert_eq!(actual, expected);

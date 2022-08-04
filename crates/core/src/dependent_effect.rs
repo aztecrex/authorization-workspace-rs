@@ -48,15 +48,15 @@ impl<CExp> DependentEffect<CExp> {
             NonStrict(perms) => {
                 let resolved: Vec<ComputedEffect> =
                     perms.iter().map(|p| p.resolve(environment)).collect();
-                let resolved = combine_non_strict(resolved);
-                resolved
+                
+                combine_non_strict(resolved)
             }
             Strict(effs) => {
                 let resolved: Vec<ComputedEffect> =
-                    effs.into_iter().map(|p| p.resolve(environment)).collect();
-                let resolved = combine_strict(resolved);
+                    effs.iter().map(|p| p.resolve(environment)).collect();
+                
 
-                resolved
+                combine_strict(resolved)
             }
         }
     }
