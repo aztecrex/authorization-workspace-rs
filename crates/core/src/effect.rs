@@ -115,6 +115,7 @@ impl From<Option<Effect>> for ComputedEffect {
 ///
 /// // deny wins
 /// assert_eq!(DENY, combine_non_strict(vec![ALLOW, DENY, ALLOW]));
+/// assert_eq!(ALLOW, combine_non_strict(vec![ALLOW, SILENT, ALLOW]));
 /// assert_eq!(ALLOW, combine_non_strict(vec![ALLOW, ALLOW, ALLOW]));
 /// ```
 pub fn combine_non_strict<I>(effs: I) -> ComputedEffect
