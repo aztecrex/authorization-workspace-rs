@@ -1,17 +1,27 @@
 //! Authorization effects.
 //!
+//! Authorization to perform an action on a resource is goverened by policies
+//! that resolve into effects. The basic effect is either `ALLOW` or `DENY`. However,
+//! resolving a policy might result in SILENCE. i.e. the policy does not either
+//! explicitly allow or deny the action.
+//!
+//! When combining policies for a principal, the fundamental rule is that there
+//! must exist at least one policy that explicitly allows an action and there must
+//! be no policy that explicitly denies the action. If all resolved policies are
+//! silent or if there are no policies at all, an action is implicitly denied.
 
-/// Definite authorization
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+/// Definite authorization
 pub enum Effect {
-    /// Authorized.
+    /// Definitiely authorized.
     ALLOW,
-    /// Not authorized.
+    /// Definitel not authorized.
     DENY,
 }
 
 /// Trait for authorizationi
 pub trait Authorization {
+    /// Is an action authorized according to this data.
     fn authorized(self) -> bool;
 }
 
@@ -39,7 +49,8 @@ impl Authorization for Effect {
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Default)]
 pub struct ComputedEffect(Option<Effect>);
 
-/// No effect
+/// No effect. Alone this means an action is not authorized. In conbination
+/// with other effects, its meaning depends on the type of combaination.
 pub const SILENT: ComputedEffect = ComputedEffect(None);
 
 /// Definitely Authorized
@@ -48,9 +59,9 @@ pub const ALLOW: ComputedEffect = ComputedEffect(Some(Effect::ALLOW));
 /// Definitely Unauthorized
 pub const DENY: ComputedEffect = ComputedEffect(Some(Effect::DENY));
 
-impl ComputedEffect {
-    /// Determine if ComputedEffect authorizes access. The only effect that authorizes
-    /// access is `ALLOW`.
+impl Authorization for ComputedEffect {
+    /// Determine if Effect authorizes access. The only effect that authorizes
+    /// access is `Effect::ALLOW`.
     ///
     /// # Examples
     ///
@@ -61,8 +72,8 @@ impl ComputedEffect {
     /// assert_eq!(DENY.authorized(), false);
     /// assert_eq!(SILENT.authorized(), false);
     /// ```
-    pub fn authorized(self) -> bool {
-        self == ALLOW
+    fn authorized(self) -> bool {
+        self.0.map_or(false, |e| e == Effect::ALLOW)
     }
 }
 
@@ -82,7 +93,7 @@ impl From<Option<Effect>> for ComputedEffect {
 /// `ALLOW` if and only if there is at least one `ALLOW` constituent and
 /// no `DENY` constituents.
 ///
-/// This is used when combining computed effects for a single principal. The
+/// This is used when combining policies for a single principal. The
 /// result is `SILENT` if there are no consituents or if all constituents
 /// are silence. Otherwise silence is ignored and any `DENY` consituent will
 /// cause the result to be `DENY`.
@@ -132,7 +143,7 @@ where
 /// so the result can be further combined if needed.
 ///
 /// A way to think about ths is by imagining a composite principal consisting of
-/// a user and, say an application. In order to allow an operation, both the user
+/// a user and, say, an application. In order to allow an operation, both the user
 /// and application must be authorized. However, if either the determination is
 /// silent for either principal, we can consider the composite question of authorization
 /// to be unmatched, i.e. SILENT.
