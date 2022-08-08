@@ -26,6 +26,10 @@ pub trait Authorized {
     fn authorized(&self) -> bool;
 }
 
+pub trait Silent {
+    fn silent(&self) -> bool;
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 /// Definite authorization
 pub enum Effect {
@@ -41,13 +45,19 @@ impl Authorized for Effect {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+impl Silent for Effect {
+    fn silent(&self) -> bool {
+        false
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ComputedEffect2 {
     Complex(Vec<ComputedEffect2>),
     Definite(Effect),
 }
 
-pub const SILENT2: ComputedEffect2 = ComputedEffect2::Complex(Vec::default());
+pub const SILENT2: ComputedEffect2 = ComputedEffect2::Complex(vec![]);
 
 pub const ALLOW2: ComputedEffect2 = ComputedEffect2::Definite(Effect::ALLOW);
 
@@ -62,11 +72,28 @@ impl From<Effect> for ComputedEffect2 {
     }
 }
 
+impl From<&Effect> for ComputedEffect2 {
+    fn from(permission: &Effect) -> Self {
+        ComputedEffect2::from(*permission)
+    }
+}
+
 impl Authorized for ComputedEffect2 {
     fn authorized(&self) -> bool {
         match self {
             ComputedEffect2::Definite(eff) => eff.authorized(),
-            ComputedEffect2::Complex(ts) => todo!(),
+            ComputedEffect2::Complex(ts) => {
+                ts.iter().any(|t| !t.silent()) && !ts.iter().any(|t| !t.silent() && !t.authorized())
+            }
+        }
+    }
+}
+
+impl Silent for ComputedEffect2 {
+    fn silent(&self) -> bool {
+        match self {
+            ComputedEffect2::Definite(_) => false,
+            ComputedEffect2::Complex(ts) => ts.iter().all(|t| t.silent()),
         }
     }
 }
@@ -106,104 +133,69 @@ impl Authorized for ComputedEffect {
     }
 }
 
-pub struct CompositeEffect<const N: usize>([ComputedEffect; N]);
+// /// Combine multiple `ComputedEffect`s in non-strict fashion. The result is
+// /// `ALLOW` if and only if there is at least one `ALLOW` constituent and
+// /// no `DENY` constituents.
+// ///
+// /// This is used when combining policies for a single principal. The
+// /// result is `SILENT` if there are no consituents or if all constituents
+// /// are silence. Otherwise silence is ignored and any `DENY` consituent will
+// /// cause the result to be `DENY`.
+// ///
+// /// # Examples
+// ///
+// /// ```
+// /// use authorization_core::effect::*;
+// ///
+// fn combine_non_strict<I>(effs: I) -> ComputedEffect
+// where
+//     I: IntoIterator<Item = ComputedEffect>,
+// {
+//     effs.into_iter().fold(SILENT, |a, e| match (a, e) {
+//         (SILENT, x) => x,
+//         (x, SILENT) => x,
+//         (ALLOW, ALLOW) => ALLOW,
+//         _ => DENY,
+//     })
+// }
 
-impl<const N: usize> From<[ComputedEffect; N]> for CompositeEffect<N> {
-    fn from(effects: [ComputedEffect; N]) -> Self {
-        CompositeEffect(effects)
-    }
-}
-
-impl From<ComputedEffect> for CompositeEffect<1> {
-    fn from(effect: ComputedEffect) -> Self {
-        CompositeEffect([effect])
-    }
-}
-
-impl<const N: usize> Authorized for CompositeEffect<N> {
-    fn authorized(&self) -> bool {
-        combine_strict(self.0).authorized()
-    }
-}
-
-/// Combine multiple `ComputedEffect`s in non-strict fashion. The result is
-/// `ALLOW` if and only if there is at least one `ALLOW` constituent and
-/// no `DENY` constituents.
-///
-/// This is used when combining policies for a single principal. The
-/// result is `SILENT` if there are no consituents or if all constituents
-/// are silence. Otherwise silence is ignored and any `DENY` consituent will
-/// cause the result to be `DENY`.
-///
-/// # Examples
-///
-/// ```
-/// use authorization_core::effect::*;
-///
-/// // empty is silence
-/// assert_eq!(SILENT, combine_non_strict(vec![]));
-///
-/// // all silence is silence
-/// assert_eq!(SILENT, combine_non_strict(vec![SILENT, SILENT]));
-///
-/// // silence ignored
-/// assert_eq!(ALLOW, combine_non_strict(vec![SILENT, ALLOW]));
-/// assert_eq!(DENY, combine_non_strict(vec![SILENT, DENY]));
-///
-/// // deny wins
-/// assert_eq!(DENY, combine_non_strict(vec![ALLOW, DENY, ALLOW]));
-/// assert_eq!(ALLOW, combine_non_strict(vec![ALLOW, SILENT, ALLOW]));
-/// assert_eq!(ALLOW, combine_non_strict(vec![ALLOW, ALLOW, ALLOW]));
-/// ```
-fn combine_non_strict<I>(effs: I) -> ComputedEffect
-where
-    I: IntoIterator<Item = ComputedEffect>,
-{
-    effs.into_iter().fold(SILENT, |a, e| match (a, e) {
-        (SILENT, x) => x,
-        (x, SILENT) => x,
-        (ALLOW, ALLOW) => ALLOW,
-        _ => DENY,
-    })
-}
-
-/// Combine mutiple computed effects in strict fashion. The result is `ALLOW` if
-/// and only if there is at least one constituent effect and every consituent
-/// effect is `ALLOW`. Any consituent silence will result in silence. If all
-/// constituents are definite (and there is a least one), conbination works
-/// the same as for non-strict wherein any consituent `DENY` results in `DENY`.
-///
-/// As with non-strict, if there are no constituents, the result is `SILENT`.
-///
-/// This function is used to combine effects for composite principals where a result
-/// is determined for each atomic principal. In this case, access is authorized if
-/// and only if access is authorized for each atomic principal. Silence is preserved
-/// so the result can be further combined if needed.
-///
-/// A way to think about ths is by imagining a composite principal consisting of
-/// a user and, say, an application. In order to allow an operation, both the user
-/// and application must be authorized. However, if either the determination is
-/// silent for either principal, we can consider the composite question of authorization
-/// to be unmatched, i.e. SILENT.
-///
-/// If a final result is SILENT, then authorization is denied per the basic rule but
-/// we return SILENCE so that the caller can understand the reason is that no
-/// policy reads on the request rather than an expicit denial.
-///
-fn combine_strict<I>(effs: I) -> ComputedEffect
-where
-    I: IntoIterator<Item = ComputedEffect>,
-{
-    effs.into_iter()
-        .fold(None, |a, e| match (a, e) {
-            (None, x) => Some(x),
-            (Some(SILENT), _) => Some(SILENT),
-            (_, SILENT) => Some(SILENT),
-            (Some(ALLOW), ALLOW) => Some(ALLOW),
-            _ => Some(DENY),
-        })
-        .unwrap_or(SILENT)
-}
+// / Combine mutiple computed effects in strict fashion. The result is `ALLOW` if
+// / and only if there is at least one constituent effect and every consituent
+// / effect is `ALLOW`. Any consituent silence will result in silence. If all
+// / constituents are definite (and there is a least one), conbination works
+// / the same as for non-strict wherein any consituent `DENY` results in `DENY`.
+// /
+// / As with non-strict, if there are no constituents, the result is `SILENT`.
+// /
+// / This function is used to combine effects for composite principals where a result
+// / is determined for each atomic principal. In this case, access is authorized if
+// / and only if access is authorized for each atomic principal. Silence is preserved
+// / so the result can be further combined if needed.
+// /
+// / A way to think about ths is by imagining a composite principal consisting of
+// / a user and, say, an application. In order to allow an operation, both the user
+// / and application must be authorized. However, if either the determination is
+// / silent for either principal, we can consider the composite question of authorization
+// / to be unmatched, i.e. SILENT.
+// /
+// / If a final result is SILENT, then authorization is denied per the basic rule but
+// / we return SILENCE so that the caller can understand the reason is that no
+// / policy reads on the request rather than an expicit denial.
+// /
+// fn combine_strict<I>(effs: I) -> ComputedEffect
+// where
+//     I: IntoIterator<Item = ComputedEffect>,
+// {
+//     effs.into_iter()
+//         .fold(None, |a, e| match (a, e) {
+//             (None, x) => Some(x),
+//             (Some(SILENT), _) => Some(SILENT),
+//             (_, SILENT) => Some(SILENT),
+//             (Some(ALLOW), ALLOW) => Some(ALLOW),
+//             _ => Some(DENY),
+//         })
+//         .unwrap_or(SILENT)
+// }
 
 #[cfg(test)]
 mod tests {

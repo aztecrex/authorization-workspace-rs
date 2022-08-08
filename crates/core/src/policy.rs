@@ -3,7 +3,6 @@
 
 use crate::environment::Environment;
 
-use super::dependent_effect::*;
 use super::effect::*;
 use super::matcher::*;
 
@@ -67,7 +66,7 @@ where
     {
         if self.applies(resource, action, environment) {
             use Policy::*;
-            match *self {
+            match self {
                 Conditional(_, _, eff, _) | Unconditional(_, _, eff) => eff.into(),
                 Complex(ts) => ComputedEffect2::Complex(
                     ts.iter()
@@ -105,7 +104,7 @@ where
 #[cfg(test)]
 mod tests {
 
-    use crate::environment::{PositiveEnvironment, Unconditional};
+    use crate::environment::PositiveEnvironment;
 
     use super::*;
 
@@ -155,7 +154,7 @@ mod tests {
 
         let actual = policy.apply(&R, &A, &PositiveEnvironment::default());
 
-        assert_eq!(actual, DependentEffect::Unconditional(Effect::DENY));
+        assert_eq!(actual, DENY2);
     }
 
     #[test]
@@ -166,7 +165,7 @@ mod tests {
 
         let actual = policy.apply(&R, &A, &PositiveEnvironment::default());
 
-        assert_eq!(actual, DependentEffect::Silent);
+        assert_eq!(actual, SILENT2);
     }
 
     #[test]
@@ -177,7 +176,7 @@ mod tests {
 
         let actual = policy.apply(&R, &A, &PositiveEnvironment::default());
 
-        assert_eq!(actual, DependentEffect::Silent);
+        assert_eq!(actual, SILENT2);
     }
 
     #[test]
@@ -187,7 +186,7 @@ mod tests {
 
         let actual = policy.apply(&R, &A, &PositiveEnvironment::default());
 
-        assert_eq!(actual, DependentEffect::Conditional(Effect::ALLOW, ()));
+        assert_eq!(actual, ALLOW2);
     }
 
     #[test]
@@ -222,10 +221,15 @@ mod tests {
         ];
         let policy = Policy::Complex(terms.clone());
 
-        let actual = policy.apply(&R, &A);
+        let actual = policy.apply(&R, &A, &PositiveEnvironment::default());
         assert_eq!(
             actual,
-            DependentEffect::Composite(terms.iter().map(|p| p.clone().apply(&R, &A)).collect())
+            ComputedEffect2::Complex(
+                terms
+                    .iter()
+                    .map(|p| p.clone().apply(&R, &A, &PositiveEnvironment::default()))
+                    .collect()
+            )
         );
     }
 

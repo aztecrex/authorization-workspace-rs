@@ -1,4 +1,3 @@
-pub mod dependent_effect;
 pub mod effect;
 pub mod environment;
 pub mod matcher;
