@@ -21,10 +21,9 @@ pub enum DependentEffect<CExp> {
     /// Combines multiple effects for single principal. It is evaluated using
     /// `authorization_core::effect::combine_non_strict(_)`
     Composite(Vec<DependentEffect<CExp>>),
-
-    /// Combines the effects of multiple principals. It is evaluated using
-    /// `authorization_core::effect::combine_strict(_)`
-    Strict(Vec<DependentEffect<CExp>>),
+    // /// Combines the effects of multiple principals. It is evaluated using
+    // /// `authorization_core::effect::combine_strict(_)`
+    // Strict(Vec<DependentEffect<CExp>>),
 }
 
 impl<CExp> DependentEffect<CExp> {
@@ -50,12 +49,6 @@ impl<CExp> DependentEffect<CExp> {
                     perms.iter().map(|p| p.resolve(environment)).collect();
 
                 combine_non_strict(resolved)
-            }
-            Strict(effs) => {
-                let resolved: Vec<ComputedEffect> =
-                    effs.iter().map(|p| p.resolve(environment)).collect();
-
-                combine_strict(resolved)
             }
         }
     }
