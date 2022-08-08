@@ -56,6 +56,9 @@ where
     }
 }
 
+
+
+
 /// Apply multiple policies using a strict algorithm. This is used when evaluating
 /// policies for a composite principal (e.g. application + user) where authorization
 /// requires all consitutents to be authorized.

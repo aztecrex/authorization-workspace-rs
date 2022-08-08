@@ -10,6 +10,22 @@
 //! be no policy that explicitly denies the action. If all resolved policies are
 //! silent or if there are no policies at all, an action is implicitly denied.
 
+/// Compute authorization for an effect.
+/// Determine if Effect authorizes access. The only effect that authorizes
+/// access is `Effect::ALLOW`.
+///
+/// # Examples
+///
+/// ```
+/// use authorization_core::effect::*;
+///
+/// assert_eq!(Effect::ALLOW.authorized(), true);
+/// assert_eq!(Effect::DENY.authorized(), false);
+/// ```
+pub trait Authorized {
+    fn authorized(&self) -> bool;
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 /// Definite authorization
 pub enum Effect {
@@ -19,20 +35,9 @@ pub enum Effect {
     DENY,
 }
 
-impl Effect {
-    /// Determine if Effect authorizes access. The only effect that authorizes
-    /// access is `Effect::ALLOW`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use authorization_core::effect::*;
-    ///
-    /// assert_eq!(Effect::ALLOW.authorized(), true);
-    /// assert_eq!(Effect::DENY.authorized(), false);
-    /// ```
-    pub fn authorized(self) -> bool {
-        self == Self::ALLOW
+impl Authorized for Effect {
+    fn authorized(&self) -> bool {
+        *self == Effect::ALLOW
     }
 }
 
@@ -53,24 +58,6 @@ pub const ALLOW: ComputedEffect = ComputedEffect(Some(Effect::ALLOW));
 /// Definitely Unauthorized
 pub const DENY: ComputedEffect = ComputedEffect(Some(Effect::DENY));
 
-impl ComputedEffect {
-    /// Determine if ComputedEffect authorizes access. The only effect that authorizes
-    /// access is `Effect::ALLOW`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use authorization_core::effect::*;
-    ///
-    /// assert_eq!(ALLOW.authorized(), true);
-    /// assert_eq!(DENY.authorized(), false);
-    /// assert_eq!(SILENT.authorized(), false);
-    /// ```
-    pub fn authorized(self) -> bool {
-        self.0.map_or(false, |e| e == Effect::ALLOW)
-    }
-}
-
 impl From<Effect> for ComputedEffect {
     fn from(permission: Effect) -> Self {
         ComputedEffect(Some(permission))
@@ -82,6 +69,14 @@ impl From<Option<Effect>> for ComputedEffect {
         ComputedEffect(maybe_permission)
     }
 }
+
+impl Authorized for ComputedEffect {
+    fn authorized(&self) -> bool {
+        self.0.map_or(false, |e| e == Effect::ALLOW)
+    }
+}
+
+pub struct CompositeEffect<const N: usize>([ComputedEffect; N]);
 
 /// Combine multiple `ComputedEffect`s in non-strict fashion. The result is
 /// `ALLOW` if and only if there is at least one `ALLOW` constituent and
