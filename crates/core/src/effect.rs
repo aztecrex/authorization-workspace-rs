@@ -41,6 +41,35 @@ impl Authorized for Effect {
     }
 }
 
+pub enum ComputedEffect2 {
+    Complex(Vec<ComputedEffect2>),
+    Definite(Effect),
+}
+
+pub const SILENT2: ComputedEffect2 = ComputedEffect2::Complex(Vec::default());
+
+pub const ALLOW2: ComputedEffect2 = ComputedEffect2::Definite(Effect::ALLOW);
+
+pub const DENY2: ComputedEffect2 = ComputedEffect2::Definite(Effect::DENY);
+
+impl From<Effect> for ComputedEffect2 {
+    fn from(effect: Effect) -> Self {
+        match effect {
+            Effect::ALLOW => ALLOW2,
+            Effect::DENY => DENY2,
+        }
+    }
+}
+
+impl Authorized for ComputedEffect2 {
+    fn authorized(&self) -> bool {
+        match self {
+            ComputedEffect2::Definite(eff) => eff.authorized(),
+            ComputedEffect2::Complex(ts) => ts.iter().any(|t| t.authorized()),
+        }
+    }
+}
+
 /// Result of an authorization computation. Represents
 /// definite `Effect` plus an additional value representing no
 /// (i.e. silent) effect. It is equivalent to `Option<Effect>` but defined

@@ -57,27 +57,31 @@ where
         }
     }
 
-    // pub fn apply_full<Env>(self, resource: &R, action: &A, env: &Env) -> ComputedEffect
-    // where
-    //     Env: Environment<CExp = CExp>,
-    // {
-    //     if self.applies(resource, action) {
-    //         use Policy::*;
-    //         match self {
-    //             Conditional(_, _, eff, cond) => {
-    //                 if env.evaluate(&cond) {
-    //                     eff.into()
-    //                 } else {
-    //                     SILENT
-    //                 }
-    //             }
-    //             Unconditional(_, _, eff) => eff.into(),
-    //             Complex(ts) => todo!(),
-    //         }
-    //     } else {
-    //         SILENT
-    //     }
-    // }
+    pub fn apply_full<Env>(&self, resource: &R, action: &A, env: &Env) -> ComputedEffect2
+    where
+        Env: Environment<CExp = CExp>,
+    {
+        if self.applies(resource, action) {
+            use Policy::*;
+            match *self {
+                Conditional(_, _, eff, cond) => {
+                    if env.evaluate(&cond) {
+                        eff.into()
+                    } else {
+                        SILENT2
+                    }
+                }
+                Unconditional(_, _, eff) => eff.into(),
+                Complex(ts) => ComputedEffect2::Complex(
+                    ts.iter()
+                        .map(|t| t.apply_full(resource, action, env))
+                        .collect(),
+                ),
+            }
+        } else {
+            SILENT2
+        }
+    }
 }
 
 // / Apply multiple policies using a strict algorithm. This is used when evaluating
