@@ -19,13 +19,7 @@ pub enum Effect {
     DENY,
 }
 
-/// Trait for authorizationi
-pub trait Authorization {
-    /// Is an action authorized according to this data.
-    fn authorized(self) -> bool;
-}
-
-impl Authorization for Effect {
+impl Effect {
     /// Determine if Effect authorizes access. The only effect that authorizes
     /// access is `Effect::ALLOW`.
     ///
@@ -37,9 +31,15 @@ impl Authorization for Effect {
     /// assert_eq!(Effect::ALLOW.authorized(), true);
     /// assert_eq!(Effect::DENY.authorized(), false);
     /// ```
-    fn authorized(self) -> bool {
+    pub fn authorized(self) -> bool {
         self == Self::ALLOW
     }
+}
+
+/// Trait for authorizationi
+pub trait Authorization {
+    /// Is an action authorized according to this data.
+    fn authorized(self) -> bool;
 }
 
 /// Result of an authorization computation. Represents
