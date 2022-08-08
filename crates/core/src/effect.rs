@@ -119,7 +119,7 @@ impl<const N: usize> Authorized for CompositeEffect<N> {
 /// assert_eq!(ALLOW, combine_non_strict(vec![ALLOW, SILENT, ALLOW]));
 /// assert_eq!(ALLOW, combine_non_strict(vec![ALLOW, ALLOW, ALLOW]));
 /// ```
-pub fn combine_non_strict<I>(effs: I) -> ComputedEffect
+fn combine_non_strict<I>(effs: I) -> ComputedEffect
 where
     I: IntoIterator<Item = ComputedEffect>,
 {
@@ -154,25 +154,6 @@ where
 /// we return SILENCE so that the caller can understand the reason is that no
 /// policy reads on the request rather than an expicit denial.
 ///
-/// # Examples
-///
-/// ```
-/// use authorization_core::effect::*;
-///
-/// // silence if no constituents
-/// assert_eq!(SILENT, combine_strict(vec![]));
-///
-/// // all silence is silence
-/// assert_eq!(SILENT, combine_strict(vec![SILENT, SILENT]));
-///
-/// // silence wins
-/// assert_eq!(SILENT, combine_strict(vec![SILENT, ALLOW]));
-/// assert_eq!(SILENT, combine_strict(vec![DENY, SILENT]));
-///
-/// // if no silence, DENY wins
-/// assert_eq!(DENY, combine_strict(vec![ALLOW, DENY, ALLOW]));
-/// assert_eq!(ALLOW, combine_strict(vec![ALLOW, ALLOW, ALLOW]));
-/// ```
 fn combine_strict<I>(effs: I) -> ComputedEffect
 where
     I: IntoIterator<Item = ComputedEffect>,

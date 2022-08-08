@@ -17,7 +17,7 @@ pub enum Policy<RMatch, AMatch, CExp> {
     /// evaluation environment.
     Conditional(RMatch, AMatch, Effect, CExp),
 
-    /// Collection of policies for a single principal. Can be recursively specified.
+    /// Colledction of policies allowing for recursive composition.
     Complex(Vec<Policy<RMatch, AMatch, CExp>>),
 }
 
@@ -56,29 +56,26 @@ where
     }
 }
 
-
-
-
-/// Apply multiple policies using a strict algorithm. This is used when evaluating
-/// policies for a composite principal (e.g. application + user) where authorization
-/// requires all consitutents to be authorized.
-pub fn apply_disjoint<R, A, Iter, CExp, RMatch, AMatch>(
-    policies: Iter,
-    resource: &R,
-    action: &A,
-) -> DependentEffect<CExp>
-where
-    Iter: IntoIterator<Item = Policy<RMatch, AMatch, CExp>>,
-    RMatch: Matcher<Target = R>,
-    AMatch: Matcher<Target = A>,
-{
-    DependentEffect::Strict(
-        policies
-            .into_iter()
-            .map(|p| p.apply(resource, action))
-            .collect(),
-    )
-}
+// / Apply multiple policies using a strict algorithm. This is used when evaluating
+// / policies for a composite principal (e.g. application + user) where authorization
+// / requires all consitutents to be authorized.
+// pub fn apply_disjoint<R, A, Iter, CExp, RMatch, AMatch>(
+//     policies: Iter,
+//     resource: &R,
+//     action: &A,
+// ) -> DependentEffect<CExp>
+// where
+//     Iter: IntoIterator<Item = Policy<RMatch, AMatch, CExp>>,
+//     RMatch: Matcher<Target = R>,
+//     AMatch: Matcher<Target = A>,
+// {
+//     DependentEffect::Strict(
+//         policies
+//             .into_iter()
+//             .map(|p| p.apply(resource, action))
+//             .collect(),
+//     )
+// }
 
 #[cfg(test)]
 mod tests {
@@ -205,41 +202,41 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_disjoint() {
-        let Matchers { m_r, m_a, miss, .. } = Matchers::new();
+    // #[test]
+    // fn test_disjoint() {
+    //     let Matchers { m_r, m_a, miss, .. } = Matchers::new();
 
-        let policies = vec![
-            Policy::Conditional(m_r, m_a, Effect::ALLOW, 18),
-            Policy::Conditional(m_r, m_a, Effect::DENY, 19),
-            Policy::Unconditional(m_r, m_a, Effect::ALLOW),
-            Policy::Unconditional(m_r, m_a, Effect::DENY),
-            Policy::Conditional(m_r, miss, Effect::ALLOW, 20),
-            Policy::Conditional(miss, m_a, Effect::DENY, 21),
-            Policy::Unconditional(miss, m_a, Effect::ALLOW),
-            Policy::Unconditional(m_r, miss, Effect::DENY),
-            Policy::Complex(vec![Policy::Complex(vec![
-                Policy::Conditional(m_r, m_a, Effect::ALLOW, 18),
-                Policy::Conditional(m_r, m_a, Effect::DENY, 19),
-                Policy::Unconditional(m_r, m_a, Effect::ALLOW),
-                Policy::Unconditional(m_r, m_a, Effect::DENY),
-                Policy::Conditional(m_r, miss, Effect::ALLOW, 20),
-                Policy::Conditional(miss, m_a, Effect::DENY, 21),
-                Policy::Unconditional(miss, m_a, Effect::ALLOW),
-                Policy::Unconditional(m_r, miss, Effect::DENY),
-            ])]),
-        ];
-        let r = "r";
-        let a = "a";
+    //     let policies = vec![
+    //         Policy::Conditional(m_r, m_a, Effect::ALLOW, 18),
+    //         Policy::Conditional(m_r, m_a, Effect::DENY, 19),
+    //         Policy::Unconditional(m_r, m_a, Effect::ALLOW),
+    //         Policy::Unconditional(m_r, m_a, Effect::DENY),
+    //         Policy::Conditional(m_r, miss, Effect::ALLOW, 20),
+    //         Policy::Conditional(miss, m_a, Effect::DENY, 21),
+    //         Policy::Unconditional(miss, m_a, Effect::ALLOW),
+    //         Policy::Unconditional(m_r, miss, Effect::DENY),
+    //         Policy::Complex(vec![Policy::Complex(vec![
+    //             Policy::Conditional(m_r, m_a, Effect::ALLOW, 18),
+    //             Policy::Conditional(m_r, m_a, Effect::DENY, 19),
+    //             Policy::Unconditional(m_r, m_a, Effect::ALLOW),
+    //             Policy::Unconditional(m_r, m_a, Effect::DENY),
+    //             Policy::Conditional(m_r, miss, Effect::ALLOW, 20),
+    //             Policy::Conditional(miss, m_a, Effect::DENY, 21),
+    //             Policy::Unconditional(miss, m_a, Effect::ALLOW),
+    //             Policy::Unconditional(m_r, miss, Effect::DENY),
+    //         ])]),
+    //     ];
+    //     let r = "r";
+    //     let a = "a";
 
-        let actual = apply_disjoint(policies.clone(), &r, &a);
+    //     let actual = apply_disjoint(policies.clone(), &r, &a);
 
-        let expected = DependentEffect::Strict(
-            policies
-                .iter()
-                .map(|p| p.clone().apply(&"r", &"a"))
-                .collect(),
-        );
-        assert_eq!(actual, expected);
-    }
+    //     let expected = DependentEffect::Strict(
+    //         policies
+    //             .iter()
+    //             .map(|p| p.clone().apply(&"r", &"a"))
+    //             .collect(),
+    //     );
+    //     assert_eq!(actual, expected);
+    // }
 }

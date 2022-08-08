@@ -310,24 +310,24 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_resolve_disjoint_empty() {
-        let effect = DependentEffect::Strict(vec![]);
+    // #[test]
+    // fn test_resolve_disjoint_empty() {
+    //     let effect = DependentEffect::Strict(vec![]);
 
-        let actual = effect.resolve(&TestEnv);
+    //     let actual = effect.resolve(&TestEnv);
 
-        assert_eq!(actual, SILENT)
-    }
+    //     assert_eq!(actual, SILENT)
+    // }
 
-    #[test]
-    fn test_resolve_disjoint_all_silent() {
-        let effect =
-            DependentEffect::Strict(vec![DependentEffect::Silent, DependentEffect::Silent]);
+    // #[test]
+    // fn test_resolve_disjoint_all_silent() {
+    //     let effect =
+    //         DependentEffect::Strict(vec![DependentEffect::Silent, DependentEffect::Silent]);
 
-        let actual = effect.resolve(&TestEnv);
+    //     let actual = effect.resolve(&TestEnv);
 
-        assert_eq!(actual, SILENT)
-    }
+    //     assert_eq!(actual, SILENT)
+    // }
 
     // #[test]
     // fn test_resolve_disjoint() {
