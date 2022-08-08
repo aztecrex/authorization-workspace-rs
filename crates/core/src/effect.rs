@@ -78,6 +78,18 @@ impl Authorized for ComputedEffect {
 
 pub struct CompositeEffect<const N: usize>([ComputedEffect; N]);
 
+impl<const N: usize> From<[ComputedEffect; N]> for CompositeEffect<N> {
+    fn from(effects: [ComputedEffect; N]) -> Self {
+        CompositeEffect(effects)
+    }
+}
+
+impl<const N: usize> Authorized for CompositeEffect<N> {
+    fn authorized(&self) -> bool {
+        combine_strict(self.0).authorized()
+    }
+}
+
 /// Combine multiple `ComputedEffect`s in non-strict fashion. The result is
 /// `ALLOW` if and only if there is at least one `ALLOW` constituent and
 /// no `DENY` constituents.
@@ -262,5 +274,33 @@ mod tests {
         check(vec![SILENT, ALLOW, SILENT, ALLOW, SILENT], SILENT);
         check(vec![ALLOW, SILENT, SILENT, ALLOW, SILENT], SILENT);
         check(vec![DENY, SILENT, SILENT, ALLOW, SILENT], SILENT);
+    }
+
+    #[test]
+    fn composite_authorized() {
+        fn check<const N: usize>(effs: [ComputedEffect; N]) {
+            let expected = combine_strict(effs).authorized();
+            let effect: CompositeEffect<N> = effs.into();
+            let actual = effect.authorized();
+            assert_eq!(actual, expected);
+        }
+
+        check([DENY, DENY, DENY]);
+        check([DENY, DENY, ALLOW]);
+        check([DENY, ALLOW, DENY]);
+        check([DENY, ALLOW, ALLOW]);
+        check([ALLOW, DENY, DENY]);
+        check([ALLOW, DENY, ALLOW]);
+        check([ALLOW, ALLOW, DENY]);
+
+        check([ALLOW, ALLOW, ALLOW]);
+
+        check([]);
+        check([SILENT, SILENT]);
+        check([SILENT, DENY, SILENT, DENY, SILENT]);
+        check([SILENT, DENY, SILENT, ALLOW, SILENT]);
+        check([SILENT, ALLOW, SILENT, ALLOW, SILENT]);
+        check([ALLOW, SILENT, SILENT, ALLOW, SILENT]);
+        check([DENY, SILENT, SILENT, ALLOW, SILENT]);
     }
 }
