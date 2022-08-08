@@ -1,6 +1,8 @@
 //! Policy configurations. A policy is a statement of explicit authorization or denial to
 //! perform an action on a resource.
 
+use crate::environment::Environment;
+
 use super::dependent_effect::*;
 use super::effect::*;
 use super::matcher::*;
@@ -54,6 +56,28 @@ where
             DependentEffect::Silent
         }
     }
+
+    // pub fn apply_full<Env>(self, resource: &R, action: &A, env: &Env) -> ComputedEffect
+    // where
+    //     Env: Environment<CExp = CExp>,
+    // {
+    //     if self.applies(resource, action) {
+    //         use Policy::*;
+    //         match self {
+    //             Conditional(_, _, eff, cond) => {
+    //                 if env.evaluate(&cond) {
+    //                     eff.into()
+    //                 } else {
+    //                     SILENT
+    //                 }
+    //             }
+    //             Unconditional(_, _, eff) => eff.into(),
+    //             Complex(ts) => todo!(),
+    //         }
+    //     } else {
+    //         SILENT
+    //     }
+    // }
 }
 
 // / Apply multiple policies using a strict algorithm. This is used when evaluating

@@ -25,6 +25,9 @@ impl<CExp> Environment for PositiveEnvironment<CExp> {
     }
 }
 
+/// Environment to use when conditions are not supported.
+pub type Unconditional = PositiveEnvironment<()>;
+
 /// Enironment for which expressions always evaluate false.
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Default)]
 pub struct NegativeEnvironment<CExp = ()>(std::marker::PhantomData<CExp>);
