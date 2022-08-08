@@ -173,7 +173,7 @@ where
 /// assert_eq!(DENY, combine_strict(vec![ALLOW, DENY, ALLOW]));
 /// assert_eq!(ALLOW, combine_strict(vec![ALLOW, ALLOW, ALLOW]));
 /// ```
-pub fn combine_strict<I>(effs: I) -> ComputedEffect
+fn combine_strict<I>(effs: I) -> ComputedEffect
 where
     I: IntoIterator<Item = ComputedEffect>,
 {
