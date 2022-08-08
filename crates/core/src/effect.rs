@@ -36,12 +36,6 @@ impl Effect {
     }
 }
 
-/// Trait for authorizationi
-pub trait Authorization {
-    /// Is an action authorized according to this data.
-    fn authorized(self) -> bool;
-}
-
 /// Result of an authorization computation. Represents
 /// definite `Effect` plus an additional value representing no
 /// (i.e. silent) effect. It is equivalent to `Option<Effect>` but defined
@@ -59,8 +53,8 @@ pub const ALLOW: ComputedEffect = ComputedEffect(Some(Effect::ALLOW));
 /// Definitely Unauthorized
 pub const DENY: ComputedEffect = ComputedEffect(Some(Effect::DENY));
 
-impl Authorization for ComputedEffect {
-    /// Determine if Effect authorizes access. The only effect that authorizes
+impl ComputedEffect {
+    /// Determine if ComputedEffect authorizes access. The only effect that authorizes
     /// access is `Effect::ALLOW`.
     ///
     /// # Examples
@@ -72,7 +66,7 @@ impl Authorization for ComputedEffect {
     /// assert_eq!(DENY.authorized(), false);
     /// assert_eq!(SILENT.authorized(), false);
     /// ```
-    fn authorized(self) -> bool {
+    pub fn authorized(self) -> bool {
         self.0.map_or(false, |e| e == Effect::ALLOW)
     }
 }
