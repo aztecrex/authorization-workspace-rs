@@ -5,20 +5,20 @@ use super::dependent_effect::*;
 use super::effect::*;
 use super::matcher::*;
 
-/// A configured authorization policy.
+/// Authorization policy expression.
 ///
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Policy<RMatch, AMatch, CExp> {
     /// Applies if resource and action match but does not depend
-    /// on a condition. If matched, it evaluates to `CompputedEffect::Fixed(_)`.
+    /// on a condition.
     Unconditional(RMatch, AMatch, Effect),
 
-    /// Applies if resource and action match and the condition applies in the evaluation environment.
-    /// If matched, it evaluates to `ComputedEffect::Atomic(_)`.
+    /// Applies if resource and action match and the condition applies in the
+    /// evaluation environment.
     Conditional(RMatch, AMatch, Effect, CExp),
 
-    /// Always applies. It evaluates to `ConditionalEffect::Composite(_)`.
-    Composite(Vec<Policy<RMatch, AMatch, CExp>>),
+    /// Collection of policies for a single principal.
+    Combined(Vec<Policy<RMatch, AMatch, CExp>>),
 }
 
 impl<R, RMatch, A, AMatch, CExp> Policy<RMatch, AMatch, CExp>
@@ -33,7 +33,7 @@ where
         match self {
             Conditional(rmatch, amatch, _, _) => rmatch.test(resource) && amatch.test(action),
             Unconditional(rmatch, amatch, _) => rmatch.test(resource) && amatch.test(action),
-            Composite(_) => true,
+            Combined(_) => true,
         }
     }
 
@@ -46,7 +46,7 @@ where
             match self {
                 Conditional(_, _, eff, cond) => DependentEffect::Conditional(eff, cond),
                 Unconditional(_, _, eff) => DependentEffect::Unconditional(eff),
-                Composite(ts) => DependentEffect::Composite(
+                Combined(ts) => DependentEffect::Composite(
                     ts.into_iter().map(|t| t.apply(resource, action)).collect(),
                 ),
             }
@@ -182,7 +182,7 @@ mod tests {
             Policy::Unconditional(m_r2, m_a, Effect::ALLOW),
             Policy::Unconditional(m_r, m_a2, Effect::ALLOW),
             Policy::Unconditional(m_r2, m_a2, Effect::ALLOW),
-            Policy::Composite(vec![
+            Policy::Combined(vec![
                 Policy::Conditional(m_r, m_a, Effect::ALLOW, ()),
                 Policy::Conditional(m_r2, m_a, Effect::ALLOW, ()),
                 Policy::Conditional(m_r, m_a2, Effect::ALLOW, ()),
@@ -193,7 +193,7 @@ mod tests {
                 Policy::Unconditional(m_r2, m_a2, Effect::ALLOW),
             ]),
         ];
-        let policy = Policy::Composite(terms.clone());
+        let policy = Policy::Combined(terms.clone());
 
         let actual = policy.apply(&R, &A);
         assert_eq!(
@@ -215,7 +215,7 @@ mod tests {
             Policy::Conditional(miss, m_a, Effect::DENY, 21),
             Policy::Unconditional(miss, m_a, Effect::ALLOW),
             Policy::Unconditional(m_r, miss, Effect::DENY),
-            Policy::Composite(vec![Policy::Composite(vec![
+            Policy::Combined(vec![Policy::Combined(vec![
                 Policy::Conditional(m_r, m_a, Effect::ALLOW, 18),
                 Policy::Conditional(m_r, m_a, Effect::DENY, 19),
                 Policy::Unconditional(m_r, m_a, Effect::ALLOW),
