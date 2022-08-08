@@ -192,26 +192,31 @@ mod tests {
     use super::*;
 
     #[test]
+    #[allow(clippy::bool_assert_comparison)]
     fn test_authorized_definite_allow() {
         assert_eq!(ALLOW.authorized(), true);
     }
 
     #[test]
+    #[allow(clippy::bool_assert_comparison)]
     fn test_not_authorized_definite_deny() {
         assert_eq!(DENY.authorized(), false);
     }
 
     #[test]
+    #[allow(clippy::bool_assert_comparison)]
     fn test_not_authorized_silent() {
         assert_eq!(SILENT.authorized(), false);
     }
 
     #[test]
+    #[allow(clippy::bool_assert_comparison)]
     fn test_authorized_effect_allow() {
         assert_eq!(Effect::ALLOW.authorized(), true);
     }
 
     #[test]
+    #[allow(clippy::bool_assert_comparison)]
     fn test_unauthorized_effect_deny() {
         assert_eq!(Effect::DENY.authorized(), false);
     }
