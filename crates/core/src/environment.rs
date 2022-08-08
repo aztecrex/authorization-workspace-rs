@@ -17,6 +17,12 @@ pub trait Environment {
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Default)]
 pub struct PositiveEnvironment<CExp = ()>(std::marker::PhantomData<CExp>);
 
+impl PositiveEnvironment {
+    /// Create a new positive environment.
+    pub fn new() -> Self {
+        PositiveEnvironment::default()
+    }
+}
 impl<CExp> Environment for PositiveEnvironment<CExp> {
     type CExp = CExp;
 
@@ -24,9 +30,6 @@ impl<CExp> Environment for PositiveEnvironment<CExp> {
         true
     }
 }
-
-/// Environment to use when conditions are not supported.
-pub type Unconditional = PositiveEnvironment<()>;
 
 /// Enironment for which expressions always evaluate false.
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Default)]
@@ -37,6 +40,16 @@ impl<CExp> Environment for NegativeEnvironment<CExp> {
 
     fn evaluate(&self, _: &Self::CExp) -> bool {
         false
+    }
+}
+
+pub struct Unconditional;
+
+impl Environment for Unconditional {
+    type CExp = ();
+
+    fn evaluate(&self, _: &Self::CExp) -> bool {
+        true
     }
 }
 

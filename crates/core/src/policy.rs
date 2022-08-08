@@ -28,53 +28,50 @@ where
     RMatch: Matcher<Target = R>,
     AMatch: Matcher<Target = A>,
 {
-    /// Private helper
-    fn applies(&self, resource: &R, action: &A) -> bool {
-        use Policy::*;
-
-        match self {
-            Conditional(rmatch, amatch, _, _) => rmatch.test(resource) && amatch.test(action),
-            Unconditional(rmatch, amatch, _) => rmatch.test(resource) && amatch.test(action),
-            Complex(_) => true,
-        }
-    }
-
-    /// Apply policy to a concrete resource and action. Results in a `ComputedEffect` that
-    /// can be evaluated in an environment.
-    pub fn apply(self, resource: &R, action: &A) -> DependentEffect<CExp> {
-        use Policy::*;
-
-        if self.applies(resource, action) {
-            match self {
-                Conditional(_, _, eff, cond) => DependentEffect::Conditional(eff, cond),
-                Unconditional(_, _, eff) => DependentEffect::Unconditional(eff),
-                Complex(ts) => DependentEffect::Composite(
-                    ts.into_iter().map(|t| t.apply(resource, action)).collect(),
-                ),
-            }
-        } else {
-            DependentEffect::Silent
-        }
-    }
-
-    pub fn apply_full<Env>(&self, resource: &R, action: &A, env: &Env) -> ComputedEffect2
+    fn applies<Env>(&self, resource: &R, action: &A, environment: &Env) -> bool
     where
         Env: Environment<CExp = CExp>,
     {
-        if self.applies(resource, action) {
+        use Policy::*;
+
+        match self {
+            Complex(_) => true,
+            Unconditional(rmatch, amatch, _) => rmatch.test(resource) && amatch.test(action),
+            Conditional(rmatch, amatch, _, condition) => {
+                rmatch.test(resource) && amatch.test(action) && environment.evaluate(condition)
+            }
+        }
+    }
+
+    // /// Apply policy to a concrete resource and action. Results in a `ComputedEffect` that
+    // /// can be evaluated in an environment.
+    // pub fn apply(self, resource: &R, action: &A) -> DependentEffect<CExp> {
+    //     use Policy::*;
+
+    //     if self.applies(resource, action) {
+    //         match self {
+    //             Conditional(_, _, eff, cond) => DependentEffect::Conditional(eff, cond),
+    //             Unconditional(_, _, eff) => DependentEffect::Unconditional(eff),
+    //             Complex(ts) => DependentEffect::Composite(
+    //                 ts.into_iter().map(|t| t.apply(resource, action)).collect(),
+    //             ),
+    //         }
+    //     } else {
+    //         DependentEffect::Silent
+    //     }
+    // }
+
+    pub fn apply<Env>(&self, resource: &R, action: &A, environment: &Env) -> ComputedEffect2
+    where
+        Env: Environment<CExp = CExp>,
+    {
+        if self.applies(resource, action, environment) {
             use Policy::*;
             match *self {
-                Conditional(_, _, eff, cond) => {
-                    if env.evaluate(&cond) {
-                        eff.into()
-                    } else {
-                        SILENT2
-                    }
-                }
-                Unconditional(_, _, eff) => eff.into(),
+                Conditional(_, _, eff, _) | Unconditional(_, _, eff) => eff.into(),
                 Complex(ts) => ComputedEffect2::Complex(
                     ts.iter()
-                        .map(|t| t.apply_full(resource, action, env))
+                        .map(|t| t.apply(resource, action, environment))
                         .collect(),
                 ),
             }
@@ -107,6 +104,8 @@ where
 
 #[cfg(test)]
 mod tests {
+
+    use crate::environment::{PositiveEnvironment, Unconditional};
 
     use super::*;
 
@@ -143,9 +142,9 @@ mod tests {
 
         let policy = Policy::<_, _, ()>::Unconditional(m_r, m_a, Effect::ALLOW);
 
-        let actual = policy.apply(&R, &A);
+        let actual = policy.apply(&R, &A, &PositiveEnvironment::default());
 
-        assert_eq!(actual, DependentEffect::Unconditional(Effect::ALLOW));
+        assert_eq!(actual, ALLOW2);
     }
 
     #[test]
@@ -154,7 +153,7 @@ mod tests {
 
         let policy = Policy::<_, _, ()>::Unconditional(m_r, m_a, Effect::DENY);
 
-        let actual = policy.apply(&R, &A);
+        let actual = policy.apply(&R, &A, &PositiveEnvironment::default());
 
         assert_eq!(actual, DependentEffect::Unconditional(Effect::DENY));
     }
@@ -165,7 +164,7 @@ mod tests {
 
         let policy = Policy::<_, _, ()>::Unconditional(miss, m_a, Effect::DENY);
 
-        let actual = policy.apply(&R, &A);
+        let actual = policy.apply(&R, &A, &PositiveEnvironment::default());
 
         assert_eq!(actual, DependentEffect::Silent);
     }
@@ -176,7 +175,7 @@ mod tests {
 
         let policy = Policy::<_, _, ()>::Unconditional(m_r, miss, Effect::DENY);
 
-        let actual = policy.apply(&R, &A);
+        let actual = policy.apply(&R, &A, &PositiveEnvironment::default());
 
         assert_eq!(actual, DependentEffect::Silent);
     }
@@ -186,7 +185,7 @@ mod tests {
         let Matchers { m_r, m_a, .. } = Matchers::new();
         let policy = Policy::Conditional(m_r, m_a, Effect::ALLOW, ());
 
-        let actual = policy.apply(&R, &A);
+        let actual = policy.apply(&R, &A, &PositiveEnvironment::default());
 
         assert_eq!(actual, DependentEffect::Conditional(Effect::ALLOW, ()));
     }

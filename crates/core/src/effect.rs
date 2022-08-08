@@ -41,6 +41,7 @@ impl Authorized for Effect {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ComputedEffect2 {
     Complex(Vec<ComputedEffect2>),
     Definite(Effect),
@@ -65,7 +66,7 @@ impl Authorized for ComputedEffect2 {
     fn authorized(&self) -> bool {
         match self {
             ComputedEffect2::Definite(eff) => eff.authorized(),
-            ComputedEffect2::Complex(ts) => ts.iter().any(|t| t.authorized()),
+            ComputedEffect2::Complex(ts) => todo!(),
         }
     }
 }
