@@ -17,7 +17,7 @@ pub enum Policy<RMatch, AMatch, CExp> {
     /// evaluation environment.
     Conditional(RMatch, AMatch, Effect, CExp),
 
-    /// Collection of policies for a single principal.
+    /// Collection of policies for a single principal. Can be recursively specified.
     Complex(Vec<Policy<RMatch, AMatch, CExp>>),
 }
 
