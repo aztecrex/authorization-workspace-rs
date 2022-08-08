@@ -18,7 +18,7 @@ pub enum Policy<RMatch, AMatch, CExp> {
     Conditional(RMatch, AMatch, Effect, CExp),
 
     /// Collection of policies for a single principal.
-    Combined(Vec<Policy<RMatch, AMatch, CExp>>),
+    Complex(Vec<Policy<RMatch, AMatch, CExp>>),
 }
 
 impl<R, RMatch, A, AMatch, CExp> Policy<RMatch, AMatch, CExp>
@@ -33,7 +33,7 @@ where
         match self {
             Conditional(rmatch, amatch, _, _) => rmatch.test(resource) && amatch.test(action),
             Unconditional(rmatch, amatch, _) => rmatch.test(resource) && amatch.test(action),
-            Combined(_) => true,
+            Complex(_) => true,
         }
     }
 
@@ -46,7 +46,7 @@ where
             match self {
                 Conditional(_, _, eff, cond) => DependentEffect::Conditional(eff, cond),
                 Unconditional(_, _, eff) => DependentEffect::Unconditional(eff),
-                Combined(ts) => DependentEffect::Composite(
+                Complex(ts) => DependentEffect::Composite(
                     ts.into_iter().map(|t| t.apply(resource, action)).collect(),
                 ),
             }
@@ -182,7 +182,7 @@ mod tests {
             Policy::Unconditional(m_r2, m_a, Effect::ALLOW),
             Policy::Unconditional(m_r, m_a2, Effect::ALLOW),
             Policy::Unconditional(m_r2, m_a2, Effect::ALLOW),
-            Policy::Combined(vec![
+            Policy::Complex(vec![
                 Policy::Conditional(m_r, m_a, Effect::ALLOW, ()),
                 Policy::Conditional(m_r2, m_a, Effect::ALLOW, ()),
                 Policy::Conditional(m_r, m_a2, Effect::ALLOW, ()),
@@ -193,7 +193,7 @@ mod tests {
                 Policy::Unconditional(m_r2, m_a2, Effect::ALLOW),
             ]),
         ];
-        let policy = Policy::Combined(terms.clone());
+        let policy = Policy::Complex(terms.clone());
 
         let actual = policy.apply(&R, &A);
         assert_eq!(
@@ -215,7 +215,7 @@ mod tests {
             Policy::Conditional(miss, m_a, Effect::DENY, 21),
             Policy::Unconditional(miss, m_a, Effect::ALLOW),
             Policy::Unconditional(m_r, miss, Effect::DENY),
-            Policy::Combined(vec![Policy::Combined(vec![
+            Policy::Complex(vec![Policy::Complex(vec![
                 Policy::Conditional(m_r, m_a, Effect::ALLOW, 18),
                 Policy::Conditional(m_r, m_a, Effect::DENY, 19),
                 Policy::Unconditional(m_r, m_a, Effect::ALLOW),

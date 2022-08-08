@@ -40,7 +40,7 @@ where
         match self {
             Aggregate(elems) => {
                 let policy = elems.into_iter().map(|e| e.apply(p)).collect();
-                Policy::Combined(policy)
+                Policy::Complex(policy)
             }
             Unconditional(rmtpl, am, eff) => Policy::Unconditional(rmtpl.apply(p), am, eff),
             Conditional(rmtpl, am, eff, cond) => Policy::Conditional(rmtpl.apply(p), am, eff, cond),
@@ -80,7 +80,7 @@ mod tests {
 
         let actual = template.apply(&"not important");
 
-        assert_eq!(actual, Policy::Combined(vec![]));
+        assert_eq!(actual, Policy::Complex(vec![]));
     }
 
     #[test]
@@ -106,7 +106,7 @@ mod tests {
         let actual = template.apply(&"param");
 
         let expected = elems.into_iter().map(|e| e.apply(&"param")).collect();
-        let expected = Policy::Combined(expected);
+        let expected = Policy::Complex(expected);
         assert_eq!(actual, expected);
     }
 
