@@ -84,6 +84,12 @@ impl<const N: usize> From<[ComputedEffect; N]> for CompositeEffect<N> {
     }
 }
 
+impl From<ComputedEffect> for CompositeEffect<1> {
+    fn from(effect: ComputedEffect) -> Self {
+        CompositeEffect([effect])
+    }
+}
+
 impl<const N: usize> Authorized for CompositeEffect<N> {
     fn authorized(&self) -> bool {
         combine_strict(self.0).authorized()
