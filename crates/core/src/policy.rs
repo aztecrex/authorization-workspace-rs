@@ -17,8 +17,8 @@ pub enum Policy<RMatch, AMatch, CExp> {
     /// If matched, it evaluates to `ComputedEffect::Atomic(_)`.
     Conditional(RMatch, AMatch, Effect, CExp),
 
-    /// Always applies. It evaluates to `ConditionalEffect::Aggregate(_)`.
-    Aggregate(Vec<Policy<RMatch, AMatch, CExp>>),
+    /// Always applies. It evaluates to `ConditionalEffect::Composite(_)`.
+    Composite(Vec<Policy<RMatch, AMatch, CExp>>),
 }
 
 impl<R, RMatch, A, AMatch, CExp> Policy<RMatch, AMatch, CExp>
@@ -33,7 +33,7 @@ where
         match self {
             Conditional(rmatch, amatch, _, _) => rmatch.test(resource) && amatch.test(action),
             Unconditional(rmatch, amatch, _) => rmatch.test(resource) && amatch.test(action),
-            Aggregate(_) => true,
+            Composite(_) => true,
         }
     }
 
@@ -46,7 +46,7 @@ where
             match self {
                 Conditional(_, _, eff, cond) => DependentEffect::Conditional(eff, cond),
                 Unconditional(_, _, eff) => DependentEffect::Unconditional(eff),
-                Aggregate(ts) => DependentEffect::NonStrict(
+                Composite(ts) => DependentEffect::Composite(
                     ts.into_iter().map(|t| t.apply(resource, action)).collect(),
                 ),
             }
@@ -182,7 +182,7 @@ mod tests {
             Policy::Unconditional(m_r2, m_a, Effect::ALLOW),
             Policy::Unconditional(m_r, m_a2, Effect::ALLOW),
             Policy::Unconditional(m_r2, m_a2, Effect::ALLOW),
-            Policy::Aggregate(vec![
+            Policy::Composite(vec![
                 Policy::Conditional(m_r, m_a, Effect::ALLOW, ()),
                 Policy::Conditional(m_r2, m_a, Effect::ALLOW, ()),
                 Policy::Conditional(m_r, m_a2, Effect::ALLOW, ()),
@@ -193,12 +193,12 @@ mod tests {
                 Policy::Unconditional(m_r2, m_a2, Effect::ALLOW),
             ]),
         ];
-        let policy = Policy::Aggregate(terms.clone());
+        let policy = Policy::Composite(terms.clone());
 
         let actual = policy.apply(&R, &A);
         assert_eq!(
             actual,
-            DependentEffect::NonStrict(terms.iter().map(|p| p.clone().apply(&R, &A)).collect())
+            DependentEffect::Composite(terms.iter().map(|p| p.clone().apply(&R, &A)).collect())
         );
     }
 
@@ -215,7 +215,7 @@ mod tests {
             Policy::Conditional(miss, m_a, Effect::DENY, 21),
             Policy::Unconditional(miss, m_a, Effect::ALLOW),
             Policy::Unconditional(m_r, miss, Effect::DENY),
-            Policy::Aggregate(vec![Policy::Aggregate(vec![
+            Policy::Composite(vec![Policy::Composite(vec![
                 Policy::Conditional(m_r, m_a, Effect::ALLOW, 18),
                 Policy::Conditional(m_r, m_a, Effect::DENY, 19),
                 Policy::Unconditional(m_r, m_a, Effect::ALLOW),

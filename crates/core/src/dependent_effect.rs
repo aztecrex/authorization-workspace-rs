@@ -20,7 +20,7 @@ pub enum DependentEffect<CExp> {
 
     /// Combines multiple effects for single principal. It is evaluated using
     /// `authorization_core::effect::combine_non_strict(_)`
-    NonStrict(Vec<DependentEffect<CExp>>),
+    Composite(Vec<DependentEffect<CExp>>),
 
     /// Combines the effects of multiple principals. It is evaluated using
     /// `authorization_core::effect::combine_strict(_)`
@@ -45,16 +45,15 @@ impl<CExp> DependentEffect<CExp> {
                 }
             }
             Unconditional(eff) => Some(*eff).into(),
-            NonStrict(perms) => {
+            Composite(perms) => {
                 let resolved: Vec<ComputedEffect> =
                     perms.iter().map(|p| p.resolve(environment)).collect();
-                
+
                 combine_non_strict(resolved)
             }
             Strict(effs) => {
                 let resolved: Vec<ComputedEffect> =
                     effs.iter().map(|p| p.resolve(environment)).collect();
-                
 
                 combine_strict(resolved)
             }
@@ -169,7 +168,7 @@ mod tests {
     }
 
     fn check_aggregate(config: Vec<DependentEffect<TestExpression>>) {
-        let perm = DependentEffect::NonStrict(config.clone());
+        let perm = DependentEffect::Composite(config.clone());
 
         let actual = perm.resolve(&TestEnv);
 
@@ -268,10 +267,10 @@ mod tests {
     fn test_nested_condition() {
         use DependentEffect::*;
 
-        let perm = NonStrict(vec![
+        let perm = Composite(vec![
             Conditional(Effect::DENY, 1u32),
             Conditional(Effect::DENY, 2u32),
-            NonStrict(vec![
+            Composite(vec![
                 Conditional(Effect::DENY, 3u32),
                 Conditional(Effect::ALLOW, 4u32),
             ]),
@@ -299,7 +298,7 @@ mod tests {
             Unconditional(Effect::ALLOW),
             Unconditional(Effect::DENY),
             Silent,
-            NonStrict(vec![
+            Composite(vec![
                 Conditional(Effect::ALLOW, 1u32),
                 Conditional(Effect::DENY, 2u32),
             ]),
