@@ -139,14 +139,15 @@ impl<'param, RMatch, R, AMatch, A, CExp, Src> Iterator
     for ForSubjectIterator<'param, Policy<RMatch, AMatch, CExp>, Src, R, A>
 where
     Src: Iterator<Item = &'param Policy<RMatch, AMatch, CExp>> + 'param,
-    RMatch: Matcher<Target = R> + 'param,
-    AMatch: Matcher<Target = A> + 'param,
-    CExp: Clone + 'param,
+    RMatch: Matcher<Target = R> + 'param + std::fmt::Debug,
+    AMatch: Matcher<Target = A> + 'param + std::fmt::Debug,
+    CExp: Clone + 'param + std::fmt::Debug,
 {
     type Item = SubjectPolicy<CExp>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
+            eprintln!("queue: {:?}", self.queue);
             if let Some(qpol) = self.queue.pop_front() {
                 if qpol.applies_to_subject(self.resource, self.action) {
                     match qpol {
@@ -576,12 +577,12 @@ mod tests {
         assert_eq!(spolicy, vec![]);
 
         let policy = Policy::Complex(vec![
-            Policy::Unconditional(m_r, m_a, Effect::ALLOW),
+            Policy::Unconditional(m_r, m_a, Effect::ALLOW), // matches
             Policy::Complex(vec![
                 Policy::Conditional(m_r2, m_a, Effect::ALLOW, true),
-                Policy::Conditional(m_r, m_a, Effect::ALLOW, false),
+                Policy::Conditional(m_r, m_a, Effect::ALLOW, false), // matches
             ]),
-            Policy::Conditional(m_r, m_a, Effect::DENY, true),
+            Policy::Conditional(m_r, m_a, Effect::DENY, true), // matches
             Policy::Unconditional(m_r2, m_a, Effect::ALLOW),
         ]);
         let spolicy: HashSet<_> = policy.for_subject(&R, &A).collect();
