@@ -19,7 +19,7 @@ pub enum Policy<RMatch, AMatch, CExp> {
     Conditional(RMatch, AMatch, Effect, CExp),
 
     /// Colledction of policies allowing for recursive composition.
-    Complex(Vec<Policy<RMatch, AMatch, CExp>>),
+    Complex(Vec<Self>),
 }
 
 impl<R, RMatch, A, AMatch, CExp> Policy<RMatch, AMatch, CExp>
