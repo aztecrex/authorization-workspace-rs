@@ -61,10 +61,19 @@ impl<CExp> Environment for NegativeEnvironment<CExp> {
     }
 }
 
-pub struct TrivialEnvironment;
+pub struct TrivialEnv;
 
-// impl Environment for TrivialEnvironment {}
-impl FallibleEnvironment for TrivialEnvironment {
+impl Environment for TrivialEnv {
+    type CExp = bool;
+
+    fn evaluate<Exp>(&self, exp: Exp) -> bool
+    where
+        Exp: Borrow<Self::CExp>,
+    {
+        *exp.borrow()
+    }
+}
+impl FallibleEnvironment for TrivialEnv {
     type CExp = bool;
 
     type Err = ();

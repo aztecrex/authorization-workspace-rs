@@ -197,7 +197,7 @@ mod tests {
 
     use std::collections::HashSet;
 
-    use crate::environment::PositiveEnvironment;
+    use crate::environment::{PositiveEnvironment, TrivialEnv};
 
     use super::*;
 
@@ -207,16 +207,6 @@ mod tests {
     static R2: &str = "r2";
     static A: &str = "a";
     static A2: &str = "a2";
-
-    struct TestEnv;
-
-    impl Environment for TestEnv {
-        type CExp = bool;
-
-        fn evaluate(&self, exp: &Self::CExp) -> bool {
-            *exp
-        }
-    }
 
     type TestPolicy = Policy<StrMatcher, StrMatcher, bool>;
 
@@ -344,7 +334,7 @@ mod tests {
 
         let policy = Policy::Conditional(m_r, m_a, Effect::ALLOW, true);
 
-        assert!(policy.applies(&R, &A, &TestEnv));
+        assert!(policy.applies(&R, &A, &TrivialEnv));
     }
 
     #[test]
@@ -353,14 +343,14 @@ mod tests {
 
         let policy = Policy::Unconditional(m_r, m_a, Effect::ALLOW);
 
-        assert!(policy.applies(&R, &A, &TestEnv));
+        assert!(policy.applies(&R, &A, &TrivialEnv));
     }
 
     #[test]
     fn test_applies_complex_empty() {
         let policy: TestPolicy = Policy::Complex(Vec::default());
 
-        assert!(!policy.applies(&R, &A, &TestEnv));
+        assert!(!policy.applies(&R, &A, &TrivialEnv));
     }
 
     #[test]
@@ -369,7 +359,7 @@ mod tests {
 
         let policy = Policy::Complex(vec![Policy::Conditional(m_r, m_a, Effect::ALLOW, false)]);
 
-        assert!(!policy.applies(&R, &A, &TestEnv));
+        assert!(!policy.applies(&R, &A, &TrivialEnv));
     }
 
     #[test]
@@ -382,7 +372,7 @@ mod tests {
             Policy::Conditional(m_r, m_a, Effect::ALLOW, false),
         ]);
 
-        assert!(policy.applies(&R, &A, &TestEnv));
+        assert!(policy.applies(&R, &A, &TrivialEnv));
     }
 
     #[test]
