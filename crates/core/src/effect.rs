@@ -30,7 +30,7 @@ pub trait Silent {
     fn silent(&self) -> bool;
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
 /// Definite authorization
 pub enum Effect {
     /// Definitiely authorized.
@@ -51,7 +51,7 @@ impl Silent for Effect {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
 pub enum ComputedEffect2 {
     Complex(Vec<ComputedEffect2>),
     Definite(Effect),

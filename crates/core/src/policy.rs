@@ -117,7 +117,7 @@ where
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
 pub enum SubjectPolicy<CExp> {
     Unconditional(Effect),
     Conditional(Effect, CExp),
@@ -188,6 +188,8 @@ where
 
 #[cfg(test)]
 mod tests {
+
+    use std::collections::HashSet;
 
     use crate::environment::PositiveEnvironment;
 
@@ -568,21 +570,25 @@ mod tests {
         let spolicy: Vec<_> = policy.for_subject(&R, &A).collect();
         assert_eq!(spolicy, vec![]);
 
-        let policy: TestPolicy = Policy::Complex(vec![
+        let policy = Policy::Complex(vec![
             Policy::Unconditional(m_r, m_a, Effect::ALLOW),
-            Policy::Conditional(m_r2, m_a, Effect::ALLOW, true),
-            Policy::Conditional(m_r, m_a, Effect::ALLOW, false),
+            Policy::Complex(vec![
+                Policy::Conditional(m_r2, m_a, Effect::ALLOW, true),
+                Policy::Conditional(m_r, m_a, Effect::ALLOW, false),
+            ]),
             Policy::Conditional(m_r, m_a, Effect::DENY, true),
             Policy::Unconditional(m_r2, m_a, Effect::ALLOW),
         ]);
-        let spolicy: Vec<_> = policy.for_subject(&R, &A).collect();
+        let spolicy: HashSet<_> = policy.for_subject(&R, &A).collect();
         assert_eq!(
             spolicy,
-            vec![
+            [
                 SubjectPolicy::Unconditional(Effect::ALLOW),
                 SubjectPolicy::Conditional(Effect::ALLOW, false),
                 SubjectPolicy::Conditional(Effect::DENY, true)
             ]
+            .into_iter()
+            .collect()
         );
     }
 
