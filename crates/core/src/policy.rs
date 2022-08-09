@@ -126,7 +126,7 @@ pub struct ForSubjectIterator<'parm, Pol, Src, R, A> {
     resource: &'parm R,
     action: &'parm A,
     source: Src,
-    queue: VecDeque<Pol>,
+    queue: VecDeque<&'parm Pol>,
 }
 
 impl<'param, RMatch, R, AMatch, A, CExp, Src> Iterator
@@ -135,7 +135,7 @@ where
     Src: Iterator<Item = &'param Policy<RMatch, AMatch, CExp>> + 'param,
     RMatch: Matcher<Target = R> + 'param,
     AMatch: Matcher<Target = A> + 'param,
-    CExp: 'param,
+    CExp: Clone + 'param,
 {
     type Item = SubjectPolicy<CExp>;
 
@@ -145,10 +145,10 @@ where
                 if qpol.applies_to_subject(self.resource, self.action) {
                     match qpol {
                         Policy::Conditional(_, _, eff, exp) => {
-                            return Some(SubjectPolicy::Conditional(eff, exp))
+                            return Some(SubjectPolicy::Conditional(*eff, exp.clone()))
                         }
                         Policy::Unconditional(_, _, eff) => {
-                            return Some(SubjectPolicy::Unconditional(eff))
+                            return Some(SubjectPolicy::Unconditional(*eff))
                         }
                         Policy::Complex(ts) => {
                             self.queue.extend(ts.into_iter());
