@@ -11,7 +11,9 @@ pub trait Environment {
     type CExp;
 
     /// Test that a condition holds with respect to the environment. Can return
-    fn evaluate(&self, exp: &Self::CExp) -> bool;
+    fn evaluate<Exp>(&self, exp: Exp) -> bool
+    where
+        Exp: Borrow<Self::CExp>;
 }
 
 pub trait FallibleEnvironment {
@@ -36,7 +38,10 @@ impl PositiveEnvironment {
 impl<CExp> Environment for PositiveEnvironment<CExp> {
     type CExp = CExp;
 
-    fn evaluate(&self, _: &Self::CExp) -> bool {
+    fn evaluate<Exp>(&self, exp: Exp) -> bool
+    where
+        Exp: Borrow<Self::CExp>,
+    {
         true
     }
 }
@@ -48,7 +53,10 @@ pub struct NegativeEnvironment<CExp = ()>(std::marker::PhantomData<CExp>);
 impl<CExp> Environment for NegativeEnvironment<CExp> {
     type CExp = CExp;
 
-    fn evaluate(&self, _: &Self::CExp) -> bool {
+    fn evaluate<Exp>(&self, exp: Exp) -> bool
+    where
+        Exp: Borrow<Self::CExp>,
+    {
         false
     }
 }
@@ -69,15 +77,15 @@ impl FallibleEnvironment for TrivialEnvironment {
     }
 }
 
-pub struct Unconditional;
+// pub struct Unconditional;
 
-impl Environment for Unconditional {
-    type CExp = ();
+// impl Environment for Unconditional {
+//     type CExp = ();
 
-    fn evaluate(&self, _: &Self::CExp) -> bool {
-        true
-    }
-}
+//     fn evaluate(&self, _: &Self::CExp) -> bool {
+//         true
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
@@ -86,12 +94,12 @@ mod tests {
     #[test]
     pub fn test_positive_environment_matches() {
         let env = PositiveEnvironment::default();
-        assert!(env.evaluate(&()));
+        assert!(env.evaluate(()));
     }
 
     #[test]
     pub fn test_negative_environment_does_not_match() {
         let env = NegativeEnvironment::default();
-        assert!(!env.evaluate(&()));
+        assert!(!env.evaluate(()));
     }
 }
