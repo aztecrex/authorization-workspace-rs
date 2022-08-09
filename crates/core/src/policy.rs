@@ -27,7 +27,40 @@ where
     RMatch: Matcher<Target = R>,
     AMatch: Matcher<Target = A>,
 {
-    fn applies<Env>(&self, resource: &R, action: &A, environment: &Env) -> bool
+    /// Determine if policy applies to subject in a specific environment.
+    pub fn applies<Env>(&self, resource: &R, action: &A, environment: &Env) -> bool
+    where
+        Env: Environment<CExp = CExp>,
+    {
+        use Policy::*;
+
+        match self {
+            Complex(_) => true,
+            Unconditional(rmatch, amatch, _) => rmatch.test(resource) && amatch.test(action),
+            Conditional(rmatch, amatch, _, condition) => {
+                rmatch.test(resource) && amatch.test(action) && environment.evaluate(condition)
+            }
+        }
+    }
+
+    /// Determine if policy applies to a resource.
+    pub fn applies_to_resource<Env>(&self, resource: &R) -> bool
+    where
+        Env: Environment<CExp = CExp>,
+    {
+        use Policy::*;
+
+        match self {
+            Complex(_) => true,
+            Unconditional(rmatch, amatch, _) => rmatch.test(resource) && amatch.test(action),
+            Conditional(rmatch, amatch, _, condition) => {
+                rmatch.test(resource) && amatch.test(action) && environment.evaluate(condition)
+            }
+        }
+    }
+
+    /// Determine if policy applies to a resource and action.
+    pub fn applies_to_subject(&self, resource: &R, action: &A) -> bool
     where
         Env: Environment<CExp = CExp>,
     {
@@ -231,6 +264,26 @@ mod tests {
                     .collect()
             )
         );
+    }
+
+    #[test]
+    fn test_match_all_conditional() {
+        let Matchers { m_r, m_a, .. } = Matchers::new();
+        let env = PositiveEnvironment::default();
+
+        let policy = Policy::Conditional(m_r, m_a, Effect::ALLOW, ());
+
+        assert!(policy.applies(&R, &A, &env))
+    }
+
+    #[test]
+    fn test_match_all_unconditional() {
+        let Matchers { m_r, m_a, .. } = Matchers::new();
+        let env = PositiveEnvironment::default();
+
+        let policy = Policy::Unconditional(m_r, m_a, Effect::ALLOW, ());
+
+        assert!(policy.applies(&R, &A, &env))
     }
 
     // #[test]
