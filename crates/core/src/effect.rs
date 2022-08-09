@@ -231,85 +231,85 @@ mod tests {
         assert_eq!(Effect::DENY.authorized(), false);
     }
 
-    #[test]
-    fn test_combine_non_strict() {
-        fn check<I>(effs: I, expected: ComputedEffect)
-        where
-            I: IntoIterator<Item = ComputedEffect>,
-        {
-            assert_eq!(combine_non_strict(effs), expected);
-        }
+    // #[test]
+    // fn test_combine_non_strict() {
+    //     fn check<I>(effs: I, expected: ComputedEffect)
+    //     where
+    //         I: IntoIterator<Item = ComputedEffect>,
+    //     {
+    //         assert_eq!(combine_non_strict(effs), expected);
+    //     }
 
-        check(vec![DENY, DENY, DENY], DENY);
-        check(vec![DENY, DENY, ALLOW], DENY);
-        check(vec![DENY, ALLOW, DENY], DENY);
-        check(vec![DENY, ALLOW, ALLOW], DENY);
-        check(vec![ALLOW, DENY, DENY], DENY);
-        check(vec![ALLOW, DENY, ALLOW], DENY);
-        check(vec![ALLOW, ALLOW, DENY], DENY);
+    //     check(vec![DENY, DENY, DENY], DENY);
+    //     check(vec![DENY, DENY, ALLOW], DENY);
+    //     check(vec![DENY, ALLOW, DENY], DENY);
+    //     check(vec![DENY, ALLOW, ALLOW], DENY);
+    //     check(vec![ALLOW, DENY, DENY], DENY);
+    //     check(vec![ALLOW, DENY, ALLOW], DENY);
+    //     check(vec![ALLOW, ALLOW, DENY], DENY);
 
-        check(vec![ALLOW, ALLOW, ALLOW], ALLOW);
+    //     check(vec![ALLOW, ALLOW, ALLOW], ALLOW);
 
-        check(vec![], SILENT);
-        check(vec![SILENT, SILENT], SILENT);
-        check(vec![SILENT, DENY, SILENT, DENY, SILENT], DENY);
-        check(vec![SILENT, DENY, SILENT, ALLOW, SILENT], DENY);
-        check(vec![SILENT, ALLOW, SILENT, ALLOW, SILENT], ALLOW);
-    }
+    //     check(vec![], SILENT);
+    //     check(vec![SILENT, SILENT], SILENT);
+    //     check(vec![SILENT, DENY, SILENT, DENY, SILENT], DENY);
+    //     check(vec![SILENT, DENY, SILENT, ALLOW, SILENT], DENY);
+    //     check(vec![SILENT, ALLOW, SILENT, ALLOW, SILENT], ALLOW);
+    // }
 
-    #[test]
-    fn test_combine_strict() {
-        fn check<I>(effs: I, expected: ComputedEffect)
-        where
-            I: IntoIterator<Item = ComputedEffect>,
-        {
-            assert_eq!(combine_strict(effs), expected);
-        }
+    // #[test]
+    // fn test_combine_strict() {
+    //     fn check<I>(effs: I, expected: ComputedEffect)
+    //     where
+    //         I: IntoIterator<Item = ComputedEffect>,
+    //     {
+    //         assert_eq!(combine_strict(effs), expected);
+    //     }
 
-        check(vec![DENY, DENY, DENY], DENY);
-        check(vec![DENY, DENY, ALLOW], DENY);
-        check(vec![DENY, ALLOW, DENY], DENY);
-        check(vec![DENY, ALLOW, ALLOW], DENY);
-        check(vec![ALLOW, DENY, DENY], DENY);
-        check(vec![ALLOW, DENY, ALLOW], DENY);
-        check(vec![ALLOW, ALLOW, DENY], DENY);
+    //     check(vec![DENY, DENY, DENY], DENY);
+    //     check(vec![DENY, DENY, ALLOW], DENY);
+    //     check(vec![DENY, ALLOW, DENY], DENY);
+    //     check(vec![DENY, ALLOW, ALLOW], DENY);
+    //     check(vec![ALLOW, DENY, DENY], DENY);
+    //     check(vec![ALLOW, DENY, ALLOW], DENY);
+    //     check(vec![ALLOW, ALLOW, DENY], DENY);
 
-        check(vec![ALLOW, ALLOW, ALLOW], ALLOW);
+    //     check(vec![ALLOW, ALLOW, ALLOW], ALLOW);
 
-        check(vec![], SILENT);
-        check(vec![SILENT, SILENT], SILENT);
-        check(vec![SILENT, DENY, SILENT, DENY, SILENT], SILENT);
-        check(vec![SILENT, DENY, SILENT, ALLOW, SILENT], SILENT);
-        check(vec![SILENT, ALLOW, SILENT, ALLOW, SILENT], SILENT);
-        check(vec![ALLOW, SILENT, SILENT, ALLOW, SILENT], SILENT);
-        check(vec![DENY, SILENT, SILENT, ALLOW, SILENT], SILENT);
-    }
+    //     check(vec![], SILENT);
+    //     check(vec![SILENT, SILENT], SILENT);
+    //     check(vec![SILENT, DENY, SILENT, DENY, SILENT], SILENT);
+    //     check(vec![SILENT, DENY, SILENT, ALLOW, SILENT], SILENT);
+    //     check(vec![SILENT, ALLOW, SILENT, ALLOW, SILENT], SILENT);
+    //     check(vec![ALLOW, SILENT, SILENT, ALLOW, SILENT], SILENT);
+    //     check(vec![DENY, SILENT, SILENT, ALLOW, SILENT], SILENT);
+    // }
 
-    #[test]
-    fn composite_authorized() {
-        fn check<const N: usize>(effs: [ComputedEffect; N]) {
-            let expected = combine_strict(effs).authorized();
-            let effect: CompositeEffect<N> = effs.into();
-            let actual = effect.authorized();
-            assert_eq!(actual, expected);
-        }
+    // #[test]
+    // fn composite_authorized() {
+    //     fn check<const N: usize>(effs: [ComputedEffect; N]) {
+    //         let expected = combine_strict(effs).authorized();
+    //         let effect: CompositeEffect<N> = effs.into();
+    //         let actual = effect.authorized();
+    //         assert_eq!(actual, expected);
+    //     }
 
-        check([DENY, DENY, DENY]);
-        check([DENY, DENY, ALLOW]);
-        check([DENY, ALLOW, DENY]);
-        check([DENY, ALLOW, ALLOW]);
-        check([ALLOW, DENY, DENY]);
-        check([ALLOW, DENY, ALLOW]);
-        check([ALLOW, ALLOW, DENY]);
+    //     check([DENY, DENY, DENY]);
+    //     check([DENY, DENY, ALLOW]);
+    //     check([DENY, ALLOW, DENY]);
+    //     check([DENY, ALLOW, ALLOW]);
+    //     check([ALLOW, DENY, DENY]);
+    //     check([ALLOW, DENY, ALLOW]);
+    //     check([ALLOW, ALLOW, DENY]);
 
-        check([ALLOW, ALLOW, ALLOW]);
+    //     check([ALLOW, ALLOW, ALLOW]);
 
-        check([]);
-        check([SILENT, SILENT]);
-        check([SILENT, DENY, SILENT, DENY, SILENT]);
-        check([SILENT, DENY, SILENT, ALLOW, SILENT]);
-        check([SILENT, ALLOW, SILENT, ALLOW, SILENT]);
-        check([ALLOW, SILENT, SILENT, ALLOW, SILENT]);
-        check([DENY, SILENT, SILENT, ALLOW, SILENT]);
-    }
+    //     check([]);
+    //     check([SILENT, SILENT]);
+    //     check([SILENT, DENY, SILENT, DENY, SILENT]);
+    //     check([SILENT, DENY, SILENT, ALLOW, SILENT]);
+    //     check([SILENT, ALLOW, SILENT, ALLOW, SILENT]);
+    //     check([ALLOW, SILENT, SILENT, ALLOW, SILENT]);
+    //     check([DENY, SILENT, SILENT, ALLOW, SILENT]);
+    // }
 }
