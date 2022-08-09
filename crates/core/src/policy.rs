@@ -82,24 +82,6 @@ where
         }
     }
 
-    // /// Apply policy to a concrete resource and action. Results in a `ComputedEffect` that
-    // /// can be evaluated in an environment.
-    // pub fn apply(self, resource: &R, action: &A) -> DependentEffect<CExp> {
-    //     use Policy::*;
-
-    //     if self.applies(resource, action) {
-    //         match self {
-    //             Conditional(_, _, eff, cond) => DependentEffect::Conditional(eff, cond),
-    //             Unconditional(_, _, eff) => DependentEffect::Unconditional(eff),
-    //             Complex(ts) => DependentEffect::Composite(
-    //                 ts.into_iter().map(|t| t.apply(resource, action)).collect(),
-    //             ),
-    //         }
-    //     } else {
-    //         DependentEffect::Silent
-    //     }
-    // }
-
     pub fn apply<Env>(&self, resource: &R, action: &A, environment: &Env) -> ComputedEffect2
     where
         Env: Environment<CExp = CExp>,
@@ -118,6 +100,17 @@ where
             SILENT2
         }
     }
+
+    pub fn resolve_subject(&self, _resource: &R, _action: &A) -> SubjectPolicy<CExp> {
+        todo!();
+    }
+}
+
+pub enum SubjectPolicy<CExp> {
+    Silent,
+    Unconditional(Effect),
+    Conditional(Effect, CExp),
+    Complex(Vec<Self>),
 }
 
 // / Apply multiple policies using a strict algorithm. This is used when evaluating
