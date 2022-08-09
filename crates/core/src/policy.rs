@@ -148,6 +148,18 @@ mod tests {
     static A: &str = "a";
     static A2: &str = "a2";
 
+    struct TestEnv;
+
+    impl Environment for TestEnv {
+        type CExp = bool;
+
+        fn evaluate(&self, exp: &Self::CExp) -> bool {
+            *exp
+        }
+    }
+
+    type TestPolicy = Policy<StrMatcher, StrMatcher, bool>;
+
     struct Matchers {
         m_r: StrMatcher,
         m_r2: StrMatcher,
@@ -267,23 +279,49 @@ mod tests {
     }
 
     #[test]
-    fn test_match_all_conditional() {
+    fn test_applies_conditional() {
         let Matchers { m_r, m_a, .. } = Matchers::new();
-        let env = PositiveEnvironment::default();
 
-        let policy = Policy::Conditional(m_r, m_a, Effect::ALLOW, ());
+        let policy = Policy::Conditional(m_r, m_a, Effect::ALLOW, true);
 
-        assert!(policy.applies(&R, &A, &env))
+        assert!(policy.applies(&R, &A, &TestEnv))
     }
 
     #[test]
-    fn test_match_all_unconditional() {
+    fn test_applies_unconditional() {
         let Matchers { m_r, m_a, .. } = Matchers::new();
-        let env = PositiveEnvironment::default();
 
-        let policy = Policy::Unconditional(m_r, m_a, Effect::ALLOW, ());
+        let policy = Policy::Unconditional(m_r, m_a, Effect::ALLOW);
 
-        assert!(policy.applies(&R, &A, &env))
+        assert!(policy.applies(&R, &A, &TestEnv))
+    }
+
+    #[test]
+    fn test_applies_complex_empty() {
+        let Matchers { m_r, m_a, .. } = Matchers::new();
+        let env = PositiveEnvironment::<()>::default();
+
+        let policy: TestPolicy = Policy::Complex(Vec::default());
+
+        assert!(!policy.applies(&R, &A, &TestEnv))
+    }
+
+    fn test_applies_complex_unmatched() {
+        let Matchers { m_r, m_a, .. } = Matchers::new();
+        let env = PositiveEnvironment::<()>::default();
+
+        let policy = Policy::Complex(vec![Policy::Conditional(m_r, m_a, Effect::ALLOW, false)]);
+
+        assert!(!policy.applies(&R, &A, &TestEnv))
+    }
+
+    fn test_applies_complex_matched() {
+        let Matchers { m_r, m_a, .. } = Matchers::new();
+        let env = PositiveEnvironment::<()>::default();
+
+        let policy = Policy::Complex(vec![Policy::Conditional(m_r, m_a, Effect::ALLOW, true)]);
+
+        assert!(policy.applies(&R, &A, &TestEnv))
     }
 
     // #[test]
