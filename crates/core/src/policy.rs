@@ -103,8 +103,17 @@ where
         }
     }
 
-    pub fn for_subject(&self, _resource: &R, _action: &A) -> SubjectPolicy<CExp> {
-        todo!();
+    pub fn for_subject<'a>(
+        self,
+        resource: &'a R,
+        action: &'a A,
+    ) -> ForSubjectIterator<'a, Self, <[Self; 1] as IntoIterator>::IntoIter, R, A> {
+        ForSubjectIterator {
+            resource,
+            action,
+            source: [self].into_iter(),
+            queue: VecDeque::default(),
+        }
     }
 }
 
@@ -116,8 +125,8 @@ pub enum SubjectPolicy<CExp> {
 pub struct ForSubjectIterator<'parm, Pol, Src, R, A> {
     resource: &'parm R,
     action: &'parm A,
-    source: Src,          // source iterator
-    queue: VecDeque<Pol>, // current policy queue for expanding complex policies
+    source: Src,
+    queue: VecDeque<Pol>,
 }
 
 impl<'param, RMatch, R, AMatch, A, CExp, Src> Iterator
