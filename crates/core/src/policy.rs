@@ -104,10 +104,10 @@ where
     }
 
     pub fn for_subject<'a>(
-        self,
+        &self,
         resource: &'a R,
         action: &'a A,
-    ) -> ForSubjectIterator<'a, Self, <[Self; 1] as IntoIterator>::IntoIter, R, A> {
+    ) -> ForSubjectIterator<'a, Self, <[&Self; 1] as IntoIterator>::IntoIter, R, A> {
         ForSubjectIterator {
             resource,
             action,
@@ -132,9 +132,10 @@ pub struct ForSubjectIterator<'parm, Pol, Src, R, A> {
 impl<'param, RMatch, R, AMatch, A, CExp, Src> Iterator
     for ForSubjectIterator<'param, Policy<RMatch, AMatch, CExp>, Src, R, A>
 where
-    Src: Iterator<Item = Policy<RMatch, AMatch, CExp>>,
-    RMatch: Matcher<Target = R>,
-    AMatch: Matcher<Target = A>,
+    Src: Iterator<Item = &'param Policy<RMatch, AMatch, CExp>> + 'param,
+    RMatch: Matcher<Target = R> + 'param,
+    AMatch: Matcher<Target = A> + 'param,
+    CExp: 'param,
 {
     type Item = SubjectPolicy<CExp>;
 
