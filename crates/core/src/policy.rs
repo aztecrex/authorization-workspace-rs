@@ -62,7 +62,7 @@ where
         use Policy::*;
 
         match self {
-            Complex(_) => true,
+            Complex(ps) => ps.iter().any(|p| p.applies_to_subject(resource, action)),
             Unconditional(rmatch, amatch, _) => rmatch.test(resource) && amatch.test(action),
             Conditional(rmatch, amatch, _, _) => rmatch.test(resource) && amatch.test(action),
         }
@@ -322,44 +322,60 @@ mod tests {
     fn test_applies_to_subject_conditional() {
         let Matchers { m_r, m_a, .. } = Matchers::new();
 
+        let policy = Policy::Conditional(m_r, m_a, Effect::ALLOW, false);
+        assert!(policy.applies_to_subject(&R, &A));
         let policy = Policy::Conditional(m_r, m_a, Effect::ALLOW, true);
-
-        assert!(policy.applies_to_subject(&R, &A, &TestEnv))
+        assert!(policy.applies_to_subject(&R, &A));
     }
 
     #[test]
     fn test_applies_to_subject_unconditional() {
         let Matchers { m_r, m_a, .. } = Matchers::new();
 
-        let policy = Policy::Unconditional(m_r, m_a, Effect::ALLOW);
+        let policy: TestPolicy = Policy::Unconditional(m_r, m_a, Effect::ALLOW);
 
-        assert!(policy.applies_to_subject(&R, &A, &TestEnv))
+        assert!(policy.applies_to_subject(&R, &A,))
     }
 
     #[test]
     fn test_applies_to_subject_complex_empty() {
         let policy: TestPolicy = Policy::Complex(Vec::default());
 
-        assert!(!policy.applies_to_subject(&R, &A, &TestEnv))
+        assert!(!policy.applies_to_subject(&R, &A))
     }
 
     #[test]
     fn test_applies_to_subject_complex_unmatched() {
-        let Matchers { m_r, m_a, .. } = Matchers::new();
+        let Matchers {
+            m_r2,
+            m_r,
+            m_a2,
+            m_a,
+            ..
+        } = Matchers::new();
 
-        let policy = Policy::Complex(vec![Policy::Conditional(m_r, m_a, Effect::ALLOW, false)]);
+        let policy = Policy::Complex(vec![
+            Policy::Conditional(m_r2, m_a, Effect::ALLOW, true),
+            Policy::Conditional(m_r, m_a2, Effect::ALLOW, true),
+        ]);
 
-        assert!(!policy.applies(&R, &A, &TestEnv))
+        assert!(!policy.applies_to_subject(&R, &A))
     }
 
     #[test]
     fn test_applies_to_subject_complex_matched() {
-        let Matchers { m_r, m_a, .. } = Matchers::new();
+        let Matchers {
+            m_r2,
+            m_r,
+            m_a2,
+            m_a,
+            ..
+        } = Matchers::new();
 
         let policy = Policy::Complex(vec![
-            Policy::Conditional(m_r, m_a, Effect::ALLOW, false),
+            Policy::Conditional(m_r2, m_a, Effect::ALLOW, true),
             Policy::Conditional(m_r, m_a, Effect::ALLOW, true),
-            Policy::Conditional(m_r, m_a, Effect::ALLOW, false),
+            Policy::Conditional(m_r, m_a2, Effect::ALLOW, true),
         ]);
 
         assert!(policy.applies(&R, &A, &TestEnv))
