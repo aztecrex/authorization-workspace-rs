@@ -378,7 +378,7 @@ mod tests {
             Policy::Conditional(m_r, m_a2, Effect::ALLOW, true),
         ]);
 
-        assert!(policy.applies(&R, &A, &TestEnv))
+        assert!(policy.applies_to_subject(&R, &A))
     }
 
     // #[test]
