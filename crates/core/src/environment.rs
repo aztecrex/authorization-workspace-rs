@@ -86,16 +86,6 @@ impl FallibleEnvironment for TrivialEnv {
     }
 }
 
-// pub struct Unconditional;
-
-// impl Environment for Unconditional {
-//     type CExp = ();
-
-//     fn evaluate(&self, _: &Self::CExp) -> bool {
-//         true
-//     }
-// }
-
 #[cfg(test)]
 mod tests {
     use super::*;
