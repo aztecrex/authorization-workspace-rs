@@ -1,6 +1,8 @@
 //! Policy configurations. A policy is a statement of explicit authorization or denial to
 //! perform an action on a resource.
 
+use std::collections::VecDeque;
+
 use crate::environment::Environment;
 
 use super::effect::*;
@@ -101,16 +103,55 @@ where
         }
     }
 
-    pub fn resolve_subject(&self, _resource: &R, _action: &A) -> SubjectPolicy<CExp> {
+    pub fn for_subject(&self, _resource: &R, _action: &A) -> SubjectPolicy<CExp> {
         todo!();
     }
 }
 
 pub enum SubjectPolicy<CExp> {
-    Silent,
     Unconditional(Effect),
     Conditional(Effect, CExp),
-    Complex(Vec<Self>),
+}
+
+pub struct ForSubjectIterator<'parm, Pol, Src, R, A> {
+    resource: &'parm R,
+    action: &'parm A,
+    source: Src,          // source iterator
+    queue: VecDeque<Pol>, // current policy queue for expanding complex policies
+}
+
+impl<'param, RMatch, R, AMatch, A, CExp, Src> Iterator
+    for ForSubjectIterator<'param, Policy<RMatch, AMatch, CExp>, Src, R, A>
+where
+    Src: Iterator<Item = Policy<RMatch, AMatch, CExp>>,
+    RMatch: Matcher<Target = R>,
+    AMatch: Matcher<Target = A>,
+{
+    type Item = SubjectPolicy<CExp>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(qpol) = self.queue.pop_front() {
+                if qpol.applies_to_subject(self.resource, self.action) {
+                    match qpol {
+                        Policy::Conditional(_, _, eff, exp) => {
+                            return Some(SubjectPolicy::Conditional(eff, exp))
+                        }
+                        Policy::Unconditional(_, _, eff) => {
+                            return Some(SubjectPolicy::Unconditional(eff))
+                        }
+                        Policy::Complex(ts) => {
+                            self.queue.extend(ts.into_iter());
+                        }
+                    }
+                }
+            } else if let Some(spol) = self.source.next() {
+                self.queue.push_back(spol);
+            } else {
+                return None;
+            }
+        }
+    }
 }
 
 // / Apply multiple policies using a strict algorithm. This is used when evaluating
