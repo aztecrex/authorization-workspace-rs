@@ -20,7 +20,9 @@ pub enum Policy<RMatch, AMatch, CExp> {
     /// evaluation environment.
     Conditional(RMatch, AMatch, Effect, CExp),
 
-    /// Colledction of policies allowing for recursive composition.
+    /// Colledction of policies allowing for recursive composition. Although
+    /// the collection is implemented as a Vec, order is not important. Policy
+    /// processing is free to re-order the results.
     Complex(Vec<Self>),
 }
 
@@ -103,6 +105,9 @@ where
         }
     }
 
+    /// Supply an iterator over policies that match the provided subject (resource and action).
+    /// Matched policies are converted to SubjectPolicy's. The iterator supplies its results
+    /// in arbitrary order.
     pub fn for_subject<'a>(
         &self,
         resource: &'a R,
