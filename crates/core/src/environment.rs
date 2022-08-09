@@ -38,7 +38,7 @@ impl PositiveEnvironment {
 impl<CExp> Environment for PositiveEnvironment<CExp> {
     type CExp = CExp;
 
-    fn evaluate<Exp>(&self, exp: Exp) -> bool
+    fn evaluate<Exp>(&self, _exp: Exp) -> bool
     where
         Exp: Borrow<Self::CExp>,
     {
@@ -53,7 +53,7 @@ pub struct NegativeEnvironment<CExp = ()>(std::marker::PhantomData<CExp>);
 impl<CExp> Environment for NegativeEnvironment<CExp> {
     type CExp = CExp;
 
-    fn evaluate<Exp>(&self, exp: Exp) -> bool
+    fn evaluate<Exp>(&self, _exp: Exp) -> bool
     where
         Exp: Borrow<Self::CExp>,
     {

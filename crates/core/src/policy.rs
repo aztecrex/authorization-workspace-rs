@@ -158,7 +158,7 @@ where
                             return Some(SubjectPolicy::Unconditional(*eff))
                         }
                         Policy::Complex(ts) => {
-                            self.queue.extend(ts.into_iter());
+                            self.queue.extend(ts.iter());
                         }
                     }
                 }
