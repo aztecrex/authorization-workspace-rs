@@ -2,6 +2,8 @@
 //!
 //!
 
+use std::borrow::Borrow;
+
 /// Contextual computations. An environment is considered unreliable generally
 /// so its methods return a `Result` for error signaling.
 pub trait Environment {
@@ -9,8 +11,16 @@ pub trait Environment {
     type CExp;
 
     /// Test that a condition holds with respect to the environment. Can return
-    /// `Err(_)` if an environmental error is encountered.
     fn evaluate(&self, exp: &Self::CExp) -> bool;
+}
+
+pub trait FallibleEnvironment {
+    type CExp;
+    type Err;
+
+    fn fallible_evaluate<Exp>(&self, exp: Exp) -> Result<bool, Self::Err>
+    where
+        Exp: Borrow<Self::CExp>;
 }
 
 /// Enironment for which expressions always evaluate true.
@@ -40,6 +50,22 @@ impl<CExp> Environment for NegativeEnvironment<CExp> {
 
     fn evaluate(&self, _: &Self::CExp) -> bool {
         false
+    }
+}
+
+pub struct TrivialEnvironment;
+
+// impl Environment for TrivialEnvironment {}
+impl FallibleEnvironment for TrivialEnvironment {
+    type CExp = bool;
+
+    type Err = ();
+
+    fn fallible_evaluate<Exp>(&self, exp: Exp) -> Result<bool, Self::Err>
+    where
+        Exp: Borrow<Self::CExp>,
+    {
+        Ok(*exp.borrow())
     }
 }
 
