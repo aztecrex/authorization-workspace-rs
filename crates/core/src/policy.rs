@@ -117,6 +117,7 @@ where
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SubjectPolicy<CExp> {
     Unconditional(Effect),
     Conditional(Effect, CExp),
@@ -541,6 +542,48 @@ mod tests {
         ]);
 
         assert!(policy.applies_to_action(&A));
+    }
+
+    #[test]
+    fn test_for_subject() {
+        let Matchers { m_r, m_r2, m_a, .. } = Matchers::new();
+
+        let policy = Policy::Conditional(m_r, m_a, Effect::ALLOW, false);
+        let spolicy: Vec<_> = policy.for_subject(&R, &A).collect();
+        assert_eq!(
+            spolicy,
+            vec![SubjectPolicy::Conditional(Effect::ALLOW, false)]
+        );
+
+        let policy: TestPolicy = Policy::Unconditional(m_r, m_a, Effect::DENY);
+        let spolicy: Vec<_> = policy.for_subject(&R, &A).collect();
+        assert_eq!(spolicy, vec![SubjectPolicy::Unconditional(Effect::DENY)]);
+
+        let policy: TestPolicy = Policy::Complex(vec![]);
+        let spolicy: Vec<_> = policy.for_subject(&R, &A).collect();
+        assert_eq!(spolicy, vec![]);
+
+        let policy: TestPolicy =
+            Policy::Complex(vec![Policy::Unconditional(m_r2, m_a, Effect::ALLOW)]);
+        let spolicy: Vec<_> = policy.for_subject(&R, &A).collect();
+        assert_eq!(spolicy, vec![]);
+
+        let policy: TestPolicy = Policy::Complex(vec![
+            Policy::Unconditional(m_r, m_a, Effect::ALLOW),
+            Policy::Conditional(m_r2, m_a, Effect::ALLOW, true),
+            Policy::Conditional(m_r, m_a, Effect::ALLOW, false),
+            Policy::Conditional(m_r, m_a, Effect::DENY, true),
+            Policy::Unconditional(m_r2, m_a, Effect::ALLOW),
+        ]);
+        let spolicy: Vec<_> = policy.for_subject(&R, &A).collect();
+        assert_eq!(
+            spolicy,
+            vec![
+                SubjectPolicy::Unconditional(Effect::ALLOW),
+                SubjectPolicy::Conditional(Effect::ALLOW, false),
+                SubjectPolicy::Conditional(Effect::DENY, true)
+            ]
+        );
     }
 
     // #[test]
