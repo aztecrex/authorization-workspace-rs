@@ -38,7 +38,7 @@ where
     fn apply(self, p: &Self::Param) -> Assertion<RMatch, AMatch, CExp> {
         use PolicyTemplate::*;
         match self {
-            Aggregate(elems) => {
+            Aggregate(_elems) => {
                 todo!()
                 // let policy = elems.into_iter().map(|e| e.apply(p)).collect();
                 // Assertion::Compound(policy)
