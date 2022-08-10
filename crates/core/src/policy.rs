@@ -614,7 +614,7 @@ mod tests {
     // }
 
     #[test]
-    fn test_policy_creation_round_trip() {
+    fn test_policy_iteration_and_collection() {
         let Matchers { m_r, m_a, .. } = Matchers::new();
 
         let terms = vec![
@@ -626,37 +626,17 @@ mod tests {
             Assertion::Conditional(m_r, m_a, Effect::ALLOW, false),
         ];
 
+        let policy: TestPolicy = terms.iter().cloned().collect();
+
+        assert_eq!(policy.iter().cloned().collect::<Vec<_>>(), terms);
+        assert_eq!(policy.into_iter().collect::<Vec<_>>(), terms);
+
         let actual = terms
             .iter()
             .cloned()
             .collect::<TestPolicy>()
             .into_iter()
             .collect::<Vec<_>>();
-
-        assert_eq!(actual, terms);
-    }
-
-    #[test]
-    fn test_policy_iteration_round_trip() {
-        let Matchers { m_r, m_a, .. } = Matchers::new();
-
-        let terms: TestPolicy = vec![
-            Assertion::Unconditional(m_r, m_a, Effect::ALLOW),
-            Assertion::Unconditional(m_r, m_a, Effect::DENY),
-            Assertion::Conditional(m_r, m_a, Effect::DENY, true),
-            Assertion::Unconditional(m_r, m_a, Effect::ALLOW),
-            Assertion::Unconditional(m_r, m_a, Effect::ALLOW),
-            Assertion::Conditional(m_r, m_a, Effect::ALLOW, false),
-        ]
-        .into_iter()
-        .collect();
-
-        let actual = terms
-            .iter()
-            .cloned()
-            .collect::<Vec<_>>()
-            .into_iter()
-            .collect::<TestPolicy>();
 
         assert_eq!(actual, terms);
     }
