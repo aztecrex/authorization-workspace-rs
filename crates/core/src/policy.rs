@@ -40,7 +40,7 @@ impl<RMatch, AMatch, CExp> Policy<RMatch, AMatch, CExp> {
         &self,
         resource: &'a R,
         action: &'a A,
-    ) -> ForSubjectIterator2<'a, <[&Self; 1] as IntoIterator>::IntoIter, R, A>
+    ) -> ForSubjectIterator2<'a, std::slice::Iter<Assertion<RMatch, AMatch, CExp>>, R, A>
     where
         RMatch: Matcher<Target = R>,
         AMatch: Matcher<Target = A>,
@@ -48,7 +48,7 @@ impl<RMatch, AMatch, CExp> Policy<RMatch, AMatch, CExp> {
         ForSubjectIterator2 {
             resource,
             action,
-            source: [self].into_iter(),
+            source: self.0.iter(),
         }
     }
 }
@@ -258,27 +258,6 @@ where
         None
     }
 }
-
-// / Apply multiple policies using a strict algorithm. This is used when evaluating
-// / policies for a composite principal (e.g. application + user) where authorization
-// / requires all consitutents to be authorized.
-// pub fn apply_disjoint<R, A, Iter, CExp, RMatch, AMatch>(
-//     policies: Iter,
-//     resource: &R,
-//     action: &A,
-// ) -> DependentEffect<CExp>
-// where
-//     Iter: IntoIterator<Item = Policy<RMatch, AMatch, CExp>>,
-//     RMatch: Matcher<Target = R>,
-//     AMatch: Matcher<Target = A>,
-// {
-//     DependentEffect::Strict(
-//         policies
-//             .into_iter()
-//             .map(|p| p.apply(resource, action))
-//             .collect(),
-//     )
-// }
 
 #[cfg(test)]
 mod tests {
