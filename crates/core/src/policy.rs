@@ -106,10 +106,6 @@ where
         use Assertion::*;
 
         match self {
-            // Compound(ps) => ps
-            //     .iter()
-            //     .map(|p| p.applies_to_resource(resource))
-            //     .any(|p| p),
             Unconditional(rmatch, _, _) => rmatch.test(resource),
             Conditional(rmatch, _, _, _) => rmatch.test(resource),
         }
@@ -145,33 +141,11 @@ where
             use Assertion::*;
             match self {
                 Conditional(_, _, eff, _) | Unconditional(_, _, eff) => eff.into(),
-                // Compound(ts) => ComputedEffect2::Complex(
-                //     ts.iter()
-                //         .map(|t| t.apply(resource, action, environment))
-                //         .collect(),
-                // ),
             }
         } else {
             SILENT2
         }
     }
-
-    // #[deprecated(note = "use Policy instead of Assertion")]
-    // /// Supply an iterator over policies that match the provided subject (resource and action).
-    // /// Matched policies are converted to SubjectPolicy's. The iterator supplies its results
-    // /// in arbitrary order.
-    // pub fn for_subject<'a>(
-    //     &self,
-    //     resource: &'a R,
-    //     action: &'a A,
-    // ) -> ForSubjectIterator<'a, Self, <[&Self; 1] as IntoIterator>::IntoIter, R, A> {
-    //     ForSubjectIterator {
-    //         resource,
-    //         action,
-    //         source: [self].into_iter(),
-    //         queue: VecDeque::default(),
-    //     }
-    // }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
@@ -179,49 +153,6 @@ pub enum SubjectPolicy<CExp> {
     Unconditional(Effect),
     Conditional(Effect, CExp),
 }
-
-// pub struct ForSubjectIterator<'parm, Pol, Src, R, A> {
-//     resource: &'parm R,
-//     action: &'parm A,
-//     source: Src,
-//     queue: VecDeque<&'parm Pol>,
-// }
-
-// impl<'param, RMatch, R, AMatch, A, CExp, Src> Iterator
-//     for ForSubjectIterator<'param, Assertion<RMatch, AMatch, CExp>, Src, R, A>
-// where
-//     Src: Iterator<Item = &'param Assertion<RMatch, AMatch, CExp>> + 'param,
-//     RMatch: Matcher<Target = R> + 'param + std::fmt::Debug,
-//     AMatch: Matcher<Target = A> + 'param + std::fmt::Debug,
-//     CExp: Clone + 'param + std::fmt::Debug,
-// {
-//     type Item = SubjectPolicy<CExp>;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         loop {
-//             eprintln!("queue: {:?}", self.queue);
-//             if let Some(qpol) = self.queue.pop_front() {
-//                 if qpol.applies_to_subject(self.resource, self.action) {
-//                     match qpol {
-//                         Assertion::Conditional(_, _, eff, exp) => {
-//                             return Some(SubjectPolicy::Conditional(*eff, exp.clone()))
-//                         }
-//                         Assertion::Unconditional(_, _, eff) => {
-//                             return Some(SubjectPolicy::Unconditional(*eff))
-//                         }
-//                         Assertion::Compound(ts) => {
-//                             self.queue.extend(ts.iter());
-//                         }
-//                     }
-//                 }
-//             } else if let Some(spol) = self.source.next() {
-//                 self.queue.push_back(spol);
-//             } else {
-//                 return None;
-//             }
-//         }
-//     }
-// }
 
 pub struct ForSubjectIterator2<'parm, Src, R, A> {
     resource: &'parm R,
