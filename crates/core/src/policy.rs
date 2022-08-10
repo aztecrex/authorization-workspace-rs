@@ -32,6 +32,25 @@ impl<RMatch, AMatch, CExp> Policy<RMatch, AMatch, CExp> {
     pub fn iter(&self) -> impl Iterator<Item = &Assertion<RMatch, AMatch, CExp>> {
         self.0.iter()
     }
+
+    /// Supply an iterator over policies that match the provided subject (resource and action).
+    /// Matched policies are converted to SubjectPolicy's. The iterator supplies its results
+    /// in arbitrary order.
+    pub fn for_subjec<'a, R, A>(
+        &self,
+        resource: &'a R,
+        action: &'a A,
+    ) -> ForSubjectIterator2<'a, <[&Self; 1] as IntoIterator>::IntoIter, R, A>
+    where
+        RMatch: Matcher<Target = R>,
+        AMatch: Matcher<Target = A>,
+    {
+        ForSubjectIterator2 {
+            resource,
+            action,
+            source: [self].into_iter(),
+        }
+    }
 }
 
 impl<RMatch, AMatch, CExp> FromIterator<Assertion<RMatch, AMatch, CExp>>
