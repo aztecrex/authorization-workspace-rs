@@ -26,9 +26,9 @@ pub enum Assertion<RMatch, AMatch, CExp> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct Policy<RMatch, AMatch, CExp>(Vec<Assertion<RMatch, AMatch, CExp>>);
+pub struct Policy<As>(Vec<As>);
 
-impl<RMatch, AMatch, CExp> Policy<RMatch, AMatch, CExp> {
+impl<RMatch, AMatch, CExp> Policy<Assertion<RMatch, AMatch, CExp>> {
     pub fn iter(&self) -> impl Iterator<Item = &Assertion<RMatch, AMatch, CExp>> {
         self.0.iter()
     }
@@ -54,7 +54,7 @@ impl<RMatch, AMatch, CExp> Policy<RMatch, AMatch, CExp> {
 }
 
 impl<RMatch, AMatch, CExp> FromIterator<Assertion<RMatch, AMatch, CExp>>
-    for Policy<RMatch, AMatch, CExp>
+    for Policy<Assertion<RMatch, AMatch, CExp>>
 {
     fn from_iter<T: IntoIterator<Item = Assertion<RMatch, AMatch, CExp>>>(items: T) -> Self {
         Policy(items.into_iter().collect())
@@ -62,14 +62,14 @@ impl<RMatch, AMatch, CExp> FromIterator<Assertion<RMatch, AMatch, CExp>>
 }
 
 impl<RMatch, AMatch, CExp> From<Vec<Assertion<RMatch, AMatch, CExp>>>
-    for Policy<RMatch, AMatch, CExp>
+    for Policy<Assertion<RMatch, AMatch, CExp>>
 {
     fn from(items: Vec<Assertion<RMatch, AMatch, CExp>>) -> Self {
         Policy(items)
     }
 }
 
-impl<RMatch, AMatch, CExp> IntoIterator for Policy<RMatch, AMatch, CExp> {
+impl<RMatch, AMatch, CExp> IntoIterator for Policy<Assertion<RMatch, AMatch, CExp>> {
     type Item = Assertion<RMatch, AMatch, CExp>;
 
     type IntoIter = <Vec<Self::Item> as IntoIterator>::IntoIter;
@@ -260,21 +260,6 @@ where
     }
 }
 
-pub trait PolicyTypes {
-    type Assertion;
-    type Policy;
-}
-
-impl<RMatch, AMatch, CExp> PolicyTypes for Assertion<RMatch, AMatch, CExp> {
-    type Assertion = Self;
-    type Policy = Assertion<RMatch, AMatch, CExp>;
-}
-
-impl<RMatch, AMatch, CExp> PolicyTypes for Policy<RMatch, AMatch, CExp> {
-    type Assertion = Assertion<RMatch, AMatch, CExp>;
-    type Policy = Self;
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -292,7 +277,7 @@ mod tests {
     static A2: &str = "a2";
 
     type TestAssertion = Assertion<StrMatcher, StrMatcher, bool>;
-    type TestPolicy = <TestAssertion as PolicyTypes>::Policy;
+    type TestPolicy = Policy<TestAssertion>;
 
     struct Matchers {
         m_r: StrMatcher,
