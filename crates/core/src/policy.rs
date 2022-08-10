@@ -23,7 +23,7 @@ pub enum Policy<RMatch, AMatch, CExp> {
     /// Colledction of policies allowing for recursive composition. Although
     /// the collection is implemented as a Vec, order is not important. Policy
     /// processing is free to re-order the results.
-    Complex(Vec<Self>),
+    Compound(Vec<Self>),
 }
 
 impl<R, RMatch, A, AMatch, CExp> Policy<RMatch, AMatch, CExp>
@@ -39,7 +39,7 @@ where
         use Policy::*;
 
         match self {
-            Complex(ps) => ps
+            Compound(ps) => ps
                 .iter()
                 .map(|p| p.applies(resource, action, environment))
                 .any(|p| p),
@@ -55,7 +55,7 @@ where
         use Policy::*;
 
         match self {
-            Complex(ps) => ps
+            Compound(ps) => ps
                 .iter()
                 .map(|p| p.applies_to_resource(resource))
                 .any(|p| p),
@@ -69,7 +69,7 @@ where
         use Policy::*;
 
         match self {
-            Complex(ps) => ps.iter().any(|p| p.applies_to_action(action)),
+            Compound(ps) => ps.iter().any(|p| p.applies_to_action(action)),
             Unconditional(_, amatch, _) => amatch.test(action),
             Conditional(_, amatch, _, _) => amatch.test(action),
         }
@@ -80,7 +80,7 @@ where
         use Policy::*;
 
         match self {
-            Complex(ps) => ps.iter().any(|p| p.applies_to_subject(resource, action)),
+            Compound(ps) => ps.iter().any(|p| p.applies_to_subject(resource, action)),
             Unconditional(rmatch, amatch, _) => rmatch.test(resource) && amatch.test(action),
             Conditional(rmatch, amatch, _, _) => rmatch.test(resource) && amatch.test(action),
         }
@@ -94,7 +94,7 @@ where
             use Policy::*;
             match self {
                 Conditional(_, _, eff, _) | Unconditional(_, _, eff) => eff.into(),
-                Complex(ts) => ComputedEffect2::Complex(
+                Compound(ts) => ComputedEffect2::Complex(
                     ts.iter()
                         .map(|t| t.apply(resource, action, environment))
                         .collect(),
@@ -157,7 +157,7 @@ where
                         Policy::Unconditional(_, _, eff) => {
                             return Some(SubjectPolicy::Unconditional(*eff))
                         }
-                        Policy::Complex(ts) => {
+                        Policy::Compound(ts) => {
                             self.queue.extend(ts.iter());
                         }
                     }
@@ -303,7 +303,7 @@ mod tests {
             Policy::Unconditional(m_r2, m_a, Effect::ALLOW),
             Policy::Unconditional(m_r, m_a2, Effect::ALLOW),
             Policy::Unconditional(m_r2, m_a2, Effect::ALLOW),
-            Policy::Complex(vec![
+            Policy::Compound(vec![
                 Policy::Conditional(m_r, m_a, Effect::ALLOW, ()),
                 Policy::Conditional(m_r2, m_a, Effect::ALLOW, ()),
                 Policy::Conditional(m_r, m_a2, Effect::ALLOW, ()),
@@ -314,7 +314,7 @@ mod tests {
                 Policy::Unconditional(m_r2, m_a2, Effect::ALLOW),
             ]),
         ];
-        let policy = Policy::Complex(terms.clone());
+        let policy = Policy::Compound(terms.clone());
 
         let actual = policy.apply(&R, &A, &PositiveEnvironment::default());
         assert_eq!(
@@ -348,7 +348,7 @@ mod tests {
 
     #[test]
     fn test_applies_complex_empty() {
-        let policy: TestPolicy = Policy::Complex(Vec::default());
+        let policy: TestPolicy = Policy::Compound(Vec::default());
 
         assert!(!policy.applies(&R, &A, &TrivialEnv));
     }
@@ -357,7 +357,7 @@ mod tests {
     fn test_applies_complex_unmatched() {
         let Matchers { m_r, m_a, .. } = Matchers::new();
 
-        let policy = Policy::Complex(vec![Policy::Conditional(m_r, m_a, Effect::ALLOW, false)]);
+        let policy = Policy::Compound(vec![Policy::Conditional(m_r, m_a, Effect::ALLOW, false)]);
 
         assert!(!policy.applies(&R, &A, &TrivialEnv));
     }
@@ -366,7 +366,7 @@ mod tests {
     fn test_applies_complex_matched() {
         let Matchers { m_r, m_a, .. } = Matchers::new();
 
-        let policy = Policy::Complex(vec![
+        let policy = Policy::Compound(vec![
             Policy::Conditional(m_r, m_a, Effect::ALLOW, false),
             Policy::Conditional(m_r, m_a, Effect::ALLOW, true),
             Policy::Conditional(m_r, m_a, Effect::ALLOW, false),
@@ -396,7 +396,7 @@ mod tests {
 
     #[test]
     fn test_applies_to_subject_complex_empty() {
-        let policy: TestPolicy = Policy::Complex(Vec::default());
+        let policy: TestPolicy = Policy::Compound(Vec::default());
 
         assert!(!policy.applies_to_subject(&R, &A));
     }
@@ -411,7 +411,7 @@ mod tests {
             ..
         } = Matchers::new();
 
-        let policy = Policy::Complex(vec![
+        let policy = Policy::Compound(vec![
             Policy::Conditional(m_r2, m_a, Effect::ALLOW, true),
             Policy::Conditional(m_r, m_a2, Effect::ALLOW, true),
         ]);
@@ -429,7 +429,7 @@ mod tests {
             ..
         } = Matchers::new();
 
-        let policy = Policy::Complex(vec![
+        let policy = Policy::Compound(vec![
             Policy::Conditional(m_r2, m_a, Effect::ALLOW, true),
             Policy::Conditional(m_r, m_a, Effect::ALLOW, true),
             Policy::Conditional(m_r, m_a2, Effect::ALLOW, true),
@@ -460,7 +460,7 @@ mod tests {
 
     #[test]
     fn test_applies_to_resource_complex_empty() {
-        let policy: TestPolicy = Policy::Complex(Vec::default());
+        let policy: TestPolicy = Policy::Compound(Vec::default());
 
         assert!(!policy.applies_to_resource(&R));
     }
@@ -469,7 +469,7 @@ mod tests {
     fn test_applies_to_resource_complex_unmatched() {
         let Matchers { m_r2, m_a, .. } = Matchers::new();
 
-        let policy = Policy::Complex(vec![
+        let policy = Policy::Compound(vec![
             Policy::Conditional(m_r2, m_a, Effect::ALLOW, true),
             Policy::Conditional(m_r2, m_a, Effect::ALLOW, true),
         ]);
@@ -481,7 +481,7 @@ mod tests {
     fn test_applies_to_resource_complex_matched() {
         let Matchers { m_r2, m_r, m_a, .. } = Matchers::new();
 
-        let policy = Policy::Complex(vec![
+        let policy = Policy::Compound(vec![
             Policy::Conditional(m_r2, m_a, Effect::ALLOW, true),
             Policy::Conditional(m_r, m_a, Effect::ALLOW, true),
             Policy::Conditional(m_r2, m_a, Effect::ALLOW, true),
@@ -512,7 +512,7 @@ mod tests {
 
     #[test]
     fn test_applies_to_action_complex_empty() {
-        let policy: TestPolicy = Policy::Complex(Vec::default());
+        let policy: TestPolicy = Policy::Compound(Vec::default());
 
         assert!(!policy.applies_to_action(&A));
     }
@@ -521,7 +521,7 @@ mod tests {
     fn test_applies_to_action_complex_unmatched() {
         let Matchers { m_r, m_a2, .. } = Matchers::new();
 
-        let policy = Policy::Complex(vec![
+        let policy = Policy::Compound(vec![
             Policy::Conditional(m_r, m_a2, Effect::ALLOW, true),
             Policy::Conditional(m_r, m_a2, Effect::ALLOW, true),
         ]);
@@ -533,7 +533,7 @@ mod tests {
     fn test_applies_to_action_complex_matched() {
         let Matchers { m_r, m_a, m_a2, .. } = Matchers::new();
 
-        let policy = Policy::Complex(vec![
+        let policy = Policy::Compound(vec![
             Policy::Conditional(m_r, m_a2, Effect::ALLOW, true),
             Policy::Conditional(m_r, m_a, Effect::ALLOW, true),
             Policy::Conditional(m_r, m_a2, Effect::ALLOW, true),
@@ -557,18 +557,18 @@ mod tests {
         let spolicy: Vec<_> = policy.for_subject(&R, &A).collect();
         assert_eq!(spolicy, vec![SubjectPolicy::Unconditional(Effect::DENY)]);
 
-        let policy: TestPolicy = Policy::Complex(vec![]);
+        let policy: TestPolicy = Policy::Compound(vec![]);
         let spolicy: Vec<_> = policy.for_subject(&R, &A).collect();
         assert_eq!(spolicy, vec![]);
 
         let policy: TestPolicy =
-            Policy::Complex(vec![Policy::Unconditional(m_r2, m_a, Effect::ALLOW)]);
+            Policy::Compound(vec![Policy::Unconditional(m_r2, m_a, Effect::ALLOW)]);
         let spolicy: Vec<_> = policy.for_subject(&R, &A).collect();
         assert_eq!(spolicy, vec![]);
 
-        let policy = Policy::Complex(vec![
+        let policy = Policy::Compound(vec![
             Policy::Unconditional(m_r, m_a, Effect::ALLOW), // matches
-            Policy::Complex(vec![
+            Policy::Compound(vec![
                 Policy::Conditional(m_r2, m_a, Effect::ALLOW, true),
                 Policy::Conditional(m_r, m_a, Effect::ALLOW, false), // matches
             ]),
