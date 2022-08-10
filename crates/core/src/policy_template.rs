@@ -39,8 +39,9 @@ where
         use PolicyTemplate::*;
         match self {
             Aggregate(elems) => {
-                let policy = elems.into_iter().map(|e| e.apply(p)).collect();
-                Assertion::Compound(policy)
+                todo!()
+                // let policy = elems.into_iter().map(|e| e.apply(p)).collect();
+                // Assertion::Compound(policy)
             }
             Unconditional(rmtpl, am, eff) => Assertion::Unconditional(rmtpl.apply(p), am, eff),
             Conditional(rmtpl, am, eff, cond) => {
@@ -82,7 +83,8 @@ mod tests {
 
         let actual = template.apply(&"not important");
 
-        assert_eq!(actual, Assertion::Compound(vec![]));
+        todo!()
+        // assert_eq!(actual, Assertion::Compound(vec![]));
     }
 
     #[test]
@@ -107,9 +109,10 @@ mod tests {
 
         let actual = template.apply(&"param");
 
-        let expected = elems.into_iter().map(|e| e.apply(&"param")).collect();
-        let expected = Assertion::Compound(expected);
-        assert_eq!(actual, expected);
+        todo!()
+        // let expected = elems.into_iter().map(|e| e.apply(&"param")).collect();
+        // let expected = Assertion::Compound(expected);
+        // assert_eq!(actual, expected);
     }
 
     #[test]
