@@ -273,8 +273,8 @@ mod tests {
     static A: &str = "a";
     static A2: &str = "a2";
 
-    type OldTestAssertion = Assertion<StrMatcher, StrMatcher, ()>;
-    type OldTestPolicy = Policy<OldTestAssertion>;
+    // type OldTestAssertion = Assertion<StrMatcher, StrMatcher, ()>;
+    // type OldTestPolicy = Policy<OldTestAssertion>;
 
     type TestAssertion = Assertion<StrMatcher, StrMatcher, bool>;
     type TestPolicy = Policy<TestAssertion>;
@@ -612,6 +612,54 @@ mod tests {
 
     //     assert!(policy.applies_to_action(&A));
     // }
+
+    #[test]
+    fn test_policy_creation_round_trip() {
+        let Matchers { m_r, m_a, .. } = Matchers::new();
+
+        let terms = vec![
+            Assertion::Unconditional(m_r, m_a, Effect::ALLOW),
+            Assertion::Unconditional(m_r, m_a, Effect::DENY),
+            Assertion::Conditional(m_r, m_a, Effect::DENY, true),
+            Assertion::Unconditional(m_r, m_a, Effect::ALLOW),
+            Assertion::Unconditional(m_r, m_a, Effect::ALLOW),
+            Assertion::Conditional(m_r, m_a, Effect::ALLOW, false),
+        ];
+
+        let actual = terms
+            .iter()
+            .cloned()
+            .collect::<TestPolicy>()
+            .into_iter()
+            .collect::<Vec<_>>();
+
+        assert_eq!(actual, terms);
+    }
+
+    #[test]
+    fn test_policy_iteration_round_trip() {
+        let Matchers { m_r, m_a, .. } = Matchers::new();
+
+        let terms: TestPolicy = vec![
+            Assertion::Unconditional(m_r, m_a, Effect::ALLOW),
+            Assertion::Unconditional(m_r, m_a, Effect::DENY),
+            Assertion::Conditional(m_r, m_a, Effect::DENY, true),
+            Assertion::Unconditional(m_r, m_a, Effect::ALLOW),
+            Assertion::Unconditional(m_r, m_a, Effect::ALLOW),
+            Assertion::Conditional(m_r, m_a, Effect::ALLOW, false),
+        ]
+        .into_iter()
+        .collect();
+
+        let actual = terms
+            .iter()
+            .cloned()
+            .collect::<Vec<_>>()
+            .into_iter()
+            .collect::<TestPolicy>();
+
+        assert_eq!(actual, terms);
+    }
 
     #[test]
     fn test_for_subject() {
