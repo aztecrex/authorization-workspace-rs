@@ -231,7 +231,7 @@ where
                         return Some(SubjectPolicy::Unconditional(*eff))
                     }
                     Assertion::Compound(_) => {
-                        panic!("Compound assertion is deprecated");
+                        panic!("Compound assertion is going away");
                     }
                 }
             }
