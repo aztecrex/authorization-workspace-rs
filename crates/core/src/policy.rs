@@ -23,6 +23,12 @@ pub enum Assertion<RMatch, AMatch, CExp> {
     // Compound(Vec<Self>),
 }
 
+impl<RMatch, AMatch, CExp> Assertion<RMatch, AMatch, CExp> {
+    pub fn for_subject(&self) -> SubjectPolicy<CExp> {
+        todo!();
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct Policy<As>(Vec<As>);
 
