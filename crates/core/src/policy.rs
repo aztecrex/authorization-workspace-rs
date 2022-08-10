@@ -205,6 +205,41 @@ where
     }
 }
 
+pub struct ForSubjectIterator2<'parm, Src, R, A> {
+    resource: &'parm R,
+    action: &'parm A,
+    source: Src,
+}
+
+impl<'param, RMatch, R, AMatch, A, CExp, Src> Iterator for ForSubjectIterator2<'param, Src, R, A>
+where
+    Src: Iterator<Item = &'param Assertion<RMatch, AMatch, CExp>> + 'param,
+    RMatch: Matcher<Target = R> + 'param + std::fmt::Debug,
+    AMatch: Matcher<Target = A> + 'param + std::fmt::Debug,
+    CExp: Clone + 'param + std::fmt::Debug,
+{
+    type Item = SubjectPolicy<CExp>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(snext) = self.source.next() {
+            if snext.applies_to_subject(self.resource, self.action) {
+                match snext {
+                    Assertion::Conditional(_, _, eff, exp) => {
+                        return Some(SubjectPolicy::Conditional(*eff, exp.clone()))
+                    }
+                    Assertion::Unconditional(_, _, eff) => {
+                        return Some(SubjectPolicy::Unconditional(*eff))
+                    }
+                    Assertion::Compound(_) => {
+                        panic!("Compound assertion is deprecated");
+                    }
+                }
+            }
+        }
+        None
+    }
+}
+
 // / Apply multiple policies using a strict algorithm. This is used when evaluating
 // / policies for a composite principal (e.g. application + user) where authorization
 // / requires all consitutents to be authorized.
