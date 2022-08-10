@@ -8,7 +8,7 @@ use crate::environment::Environment;
 use super::effect::*;
 use super::matcher::*;
 
-/// Authorization policy expression.
+/// Authorization policy assertion.
 ///
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Assertion<RMatch, AMatch, CExp> {
@@ -25,16 +25,40 @@ pub enum Assertion<RMatch, AMatch, CExp> {
     Compound(Vec<Self>),
 }
 
-// pub struct Policy(Vec<Asertion>);
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct Policy<RMatch, AMatch, CExp>(Vec<Assertion<RMatch, AMatch, CExp>>);
 
-// impl<I> From<I> for Policy
-// where
-//     I: IntoIterator<Item = Asertion>,
-// {
-//     fn from(asertions: I) -> Self {
+impl<RMatch, AMatch, CExp> Policy<RMatch, AMatch, CExp> {
+    pub fn iter(&self) -> impl Iterator<Item = &Assertion<RMatch, AMatch, CExp>> {
+        self.0.iter()
+    }
+}
 
-//     }
-// }
+impl<RMatch, AMatch, CExp> FromIterator<Assertion<RMatch, AMatch, CExp>>
+    for Policy<RMatch, AMatch, CExp>
+{
+    fn from_iter<T: IntoIterator<Item = Assertion<RMatch, AMatch, CExp>>>(items: T) -> Self {
+        Policy(items.into_iter().collect())
+    }
+}
+
+impl<RMatch, AMatch, CExp> From<Vec<Assertion<RMatch, AMatch, CExp>>>
+    for Policy<RMatch, AMatch, CExp>
+{
+    fn from(items: Vec<Assertion<RMatch, AMatch, CExp>>) -> Self {
+        Policy(items)
+    }
+}
+
+impl<RMatch, AMatch, CExp> IntoIterator for Policy<RMatch, AMatch, CExp> {
+    type Item = Assertion<RMatch, AMatch, CExp>;
+
+    type IntoIter = <Vec<Self::Item> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        todo!()
+    }
+}
 
 impl<R, RMatch, A, AMatch, CExp> Assertion<RMatch, AMatch, CExp>
 where
