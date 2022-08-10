@@ -56,7 +56,7 @@ impl<RMatch, AMatch, CExp> IntoIterator for Policy<RMatch, AMatch, CExp> {
     type IntoIter = <Vec<Self::Item> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
-        todo!()
+        self.0.into_iter()
     }
 }
 
