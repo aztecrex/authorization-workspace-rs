@@ -28,22 +28,24 @@ pub enum PolicyTemplate<RMatchTpl, AMatch, CExp> {
     Aggregate(Vec<PolicyTemplate<RMatchTpl, AMatch, CExp>>),
 }
 
-impl<Param, RMatchTpl, RMatch, AMatch, CExp> Template<Policy<RMatch, AMatch, CExp>>
+impl<Param, RMatchTpl, RMatch, AMatch, CExp> Template<Assertion<RMatch, AMatch, CExp>>
     for PolicyTemplate<RMatchTpl, AMatch, CExp>
 where
     RMatchTpl: Template<RMatch, Param = Param>,
 {
     type Param = Param;
 
-    fn apply(self, p: &Self::Param) -> Policy<RMatch, AMatch, CExp> {
+    fn apply(self, p: &Self::Param) -> Assertion<RMatch, AMatch, CExp> {
         use PolicyTemplate::*;
         match self {
             Aggregate(elems) => {
                 let policy = elems.into_iter().map(|e| e.apply(p)).collect();
-                Policy::Compound(policy)
+                Assertion::Compound(policy)
             }
-            Unconditional(rmtpl, am, eff) => Policy::Unconditional(rmtpl.apply(p), am, eff),
-            Conditional(rmtpl, am, eff, cond) => Policy::Conditional(rmtpl.apply(p), am, eff, cond),
+            Unconditional(rmtpl, am, eff) => Assertion::Unconditional(rmtpl.apply(p), am, eff),
+            Conditional(rmtpl, am, eff, cond) => {
+                Assertion::Conditional(rmtpl.apply(p), am, eff, cond)
+            }
         }
     }
 }
@@ -80,7 +82,7 @@ mod tests {
 
         let actual = template.apply(&"not important");
 
-        assert_eq!(actual, Policy::Compound(vec![]));
+        assert_eq!(actual, Assertion::Compound(vec![]));
     }
 
     #[test]
@@ -106,7 +108,7 @@ mod tests {
         let actual = template.apply(&"param");
 
         let expected = elems.into_iter().map(|e| e.apply(&"param")).collect();
-        let expected = Policy::Compound(expected);
+        let expected = Assertion::Compound(expected);
         assert_eq!(actual, expected);
     }
 
@@ -123,7 +125,7 @@ mod tests {
 
         assert_eq!(
             actual,
-            Policy::Unconditional(rmatch_tpl.apply(&"xyz"), AMatch("a"), Effect::ALLOW)
+            Assertion::Unconditional(rmatch_tpl.apply(&"xyz"), AMatch("a"), Effect::ALLOW)
         );
     }
 
@@ -140,7 +142,7 @@ mod tests {
 
         assert_eq!(
             actual,
-            Policy::Unconditional(rmatch_tpl.apply(&"xyz"), AMatch("a"), Effect::DENY)
+            Assertion::Unconditional(rmatch_tpl.apply(&"xyz"), AMatch("a"), Effect::DENY)
         );
     }
 
@@ -158,7 +160,7 @@ mod tests {
 
         assert_eq!(
             actual,
-            Policy::Conditional(
+            Assertion::Conditional(
                 rmatch_tpl.apply(&"xyz"),
                 AMatch("a"),
                 Effect::ALLOW,
@@ -181,7 +183,7 @@ mod tests {
 
         assert_eq!(
             actual,
-            Policy::Conditional(
+            Assertion::Conditional(
                 rmatch_tpl.apply(&"xyz"),
                 AMatch("a"),
                 Effect::DENY,
