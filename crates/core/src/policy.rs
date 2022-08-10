@@ -260,6 +260,21 @@ where
     }
 }
 
+pub trait PolicyTypes {
+    type Assertion;
+    type Policy;
+}
+
+impl<RMatch, AMatch, CExp> PolicyTypes for Assertion<RMatch, AMatch, CExp> {
+    type Assertion = Self;
+    type Policy = Assertion<RMatch, AMatch, CExp>;
+}
+
+impl<RMatch, AMatch, CExp> PolicyTypes for Policy<RMatch, AMatch, CExp> {
+    type Assertion = Assertion<RMatch, AMatch, CExp>;
+    type Policy = Self;
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -277,6 +292,7 @@ mod tests {
     static A2: &str = "a2";
 
     type TestAssertion = Assertion<StrMatcher, StrMatcher, bool>;
+    type TestPolicy = <TestAssertion as PolicyTypes>::Policy;
 
     struct Matchers {
         m_r: StrMatcher,
