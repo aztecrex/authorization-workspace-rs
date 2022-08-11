@@ -44,12 +44,12 @@ impl<RMatch, AMatch, CExp> Policy<Assertion<RMatch, AMatch, CExp>> {
         &self,
         resource: &'a R,
         action: &'a A,
-    ) -> ForSubjectIterator2<'a, std::slice::Iter<Assertion<RMatch, AMatch, CExp>>, R, A>
+    ) -> ForSubjectIter<'a, std::slice::Iter<Assertion<RMatch, AMatch, CExp>>, R, A>
     where
         RMatch: Matcher<Target = R>,
         AMatch: Matcher<Target = A>,
     {
-        ForSubjectIterator2 {
+        ForSubjectIter {
             resource,
             action,
             source: self.0.iter(),
@@ -160,13 +160,13 @@ pub enum SubjectPolicy<CExp> {
     Conditional(Effect, CExp),
 }
 
-pub struct ForSubjectIterator2<'parm, Src, R, A> {
+pub struct ForSubjectIter<'parm, Src, R, A> {
     resource: &'parm R,
     action: &'parm A,
     source: Src,
 }
 
-impl<'param, RMatch, R, AMatch, A, CExp, Src> Iterator for ForSubjectIterator2<'param, Src, R, A>
+impl<'param, RMatch, R, AMatch, A, CExp, Src> Iterator for ForSubjectIter<'param, Src, R, A>
 where
     Src: Iterator<Item = &'param Assertion<RMatch, AMatch, CExp>> + 'param,
     RMatch: Matcher<Target = R> + 'param + std::fmt::Debug,
