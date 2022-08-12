@@ -30,11 +30,6 @@
 
 use std::borrow::Borrow;
 
-/// Compute authorization for an effect.
-/// Determine if Effect authorizes access. The only effect that authorizes
-/// access is `Effect::ALLOW`.
-///
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
 /// Definite authorization
 pub enum Effect {
