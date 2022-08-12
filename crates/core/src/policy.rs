@@ -24,7 +24,7 @@ pub enum Assertion<RMatch, AMatch, CExp> {
 }
 
 impl<RMatch, AMatch, CExp> Assertion<RMatch, AMatch, CExp> {
-    pub fn for_subject(&self) -> SubjectPolicy<CExp> {
+    pub fn for_subject(&self) -> SubjectAssertion<CExp> {
         todo!();
     }
 }
@@ -88,7 +88,7 @@ where
     RMatch: Matcher<Target = R>,
     AMatch: Matcher<Target = A>,
 {
-    /// Determine if policy applies to subject in a specific environment.
+    /// Determine if specification applies to subject in a specific environment.
     pub fn applies<Env>(&self, resource: &R, action: &A, environment: &Env) -> bool
     where
         Env: Environment<CExp = CExp>,
@@ -107,7 +107,7 @@ where
         }
     }
 
-    /// Determine if policy applies to a resource.
+    /// Determine if specification applies to a resource.
     pub fn applies_to_resource(&self, resource: &R) -> bool {
         use Assertion::*;
 
@@ -117,7 +117,7 @@ where
         }
     }
 
-    /// Determine if policy applies to a resource and action.
+    /// Determine if specification applies to a resource and action.
     pub fn applies_to_action(&self, action: &A) -> bool {
         use Assertion::*;
 
@@ -128,12 +128,11 @@ where
         }
     }
 
-    /// Determine if policy applies to a resource and action.
+    /// Determine if specification applies to a resource and action.
     pub fn applies_to_subject(&self, resource: &R, action: &A) -> bool {
         use Assertion::*;
 
         match self {
-            // Compound(ps) => ps.iter().any(|p| p.applies_to_subject(resource, action)),
             Unconditional(rmatch, amatch, _) => rmatch.test(resource) && amatch.test(action),
             Conditional(rmatch, amatch, _, _) => rmatch.test(resource) && amatch.test(action),
         }
@@ -155,7 +154,7 @@ where
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
-pub enum SubjectPolicy<CExp> {
+pub enum SubjectAssertion<CExp> {
     Unconditional(Effect),
     Conditional(Effect, CExp),
 }
@@ -173,17 +172,17 @@ where
     AMatch: Matcher<Target = A> + 'param + std::fmt::Debug,
     CExp: Clone + 'param + std::fmt::Debug,
 {
-    type Item = SubjectPolicy<CExp>;
+    type Item = SubjectAssertion<CExp>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(snext) = self.source.next() {
             if snext.applies_to_subject(self.resource, self.action) {
                 match snext {
                     Assertion::Conditional(_, _, eff, exp) => {
-                        return Some(SubjectPolicy::Conditional(*eff, exp.clone()))
+                        return Some(SubjectAssertion::Conditional(*eff, exp.clone()))
                     }
                     Assertion::Unconditional(_, _, eff) => {
-                        return Some(SubjectPolicy::Unconditional(*eff))
+                        return Some(SubjectAssertion::Unconditional(*eff))
                     } // Assertion::Compound(_) => {
                       //     panic!("Compound assertion is going away");
                       // }
@@ -588,14 +587,14 @@ mod tests {
         let spolicy: Vec<_> = policy.for_subject(&R, &A).collect();
         assert_eq!(
             spolicy,
-            vec![SubjectPolicy::Conditional(Effect::ALLOW, false)]
+            vec![SubjectAssertion::Conditional(Effect::ALLOW, false)]
         );
 
         let policy: TestPolicy = [Assertion::Unconditional(m_r, m_a, Effect::DENY)]
             .into_iter()
             .collect();
         let spolicy: Vec<_> = policy.for_subject(&R, &A).collect();
-        assert_eq!(spolicy, vec![SubjectPolicy::Unconditional(Effect::DENY)]);
+        assert_eq!(spolicy, vec![SubjectAssertion::Unconditional(Effect::DENY)]);
 
         let policy: TestPolicy = [].into_iter().collect();
         let spolicy: Vec<_> = policy.for_subject(&R, &A).collect();
@@ -620,9 +619,9 @@ mod tests {
         assert_eq!(
             spolicy,
             [
-                SubjectPolicy::Unconditional(Effect::ALLOW),
-                SubjectPolicy::Conditional(Effect::ALLOW, false),
-                SubjectPolicy::Conditional(Effect::DENY, true)
+                SubjectAssertion::Unconditional(Effect::ALLOW),
+                SubjectAssertion::Conditional(Effect::ALLOW, false),
+                SubjectAssertion::Conditional(Effect::DENY, true)
             ]
             .into_iter()
             .collect()
