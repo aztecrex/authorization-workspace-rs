@@ -97,6 +97,22 @@ mod tests {
             assert_eq!(effs.iter().collect::<ComputedEffect>(), expected);
         }
 
+        check([DENY], DENY);
+        check([ALLOW], ALLOW);
+        check([SILENT], SILENT);
+
+        check([DENY, DENY], DENY);
+        check([DENY, ALLOW], DENY);
+        check([DENY, SILENT], DENY);
+
+        check([ALLOW, DENY], DENY);
+        check([ALLOW, ALLOW], ALLOW);
+        check([ALLOW, SILENT], ALLOW);
+
+        check([SILENT, DENY], DENY);
+        check([SILENT, ALLOW], ALLOW);
+        check([SILENT, SILENT], SILENT);
+
         check([DENY, DENY, DENY], DENY);
 
         check([DENY, DENY, DENY], DENY);
