@@ -73,18 +73,6 @@ impl<RMatch, AMatch, CExp> Policy<Assertion<RMatch, AMatch, CExp>> {
         Assertion::allow_any().into()
     }
 
-    //     pub fn allow_all() -> Self
-    //     where
-    //         RMatch: ExtendedMatcher,
-    //         AMatch: ExtendedMatcher,
-    //     {
-    //         Policy(vec![Assertion::Unconditional(
-    //             RMatch::match_any(),
-    //             AMatch::match_any(),
-    //             Effect::ALLOW,
-    //         )])
-    //     }
-
     /// Supply an iterator over assertions that match the provided subject (resource and action).
     /// Matched policies are converted to SubjectPolicy's. The iterator supplies its results
     /// in arbitrary order.
