@@ -57,17 +57,21 @@ impl<RMatch, AMatch, CExp> Policy<Assertion<RMatch, AMatch, CExp>> {
         self.0.iter()
     }
 
-    //     pub fn deny_all() -> Self
-    //     where
-    //         RMatch: ExtendedMatcher,
-    //         AMatch: ExtendedMatcher,
-    //     {
-    //         Policy(vec![Assertion::Unconditional(
-    //             RMatch::match_any(),
-    //             AMatch::match_any(),
-    //             Effect::DENY,
-    //         )])
-    //     }
+    pub fn deny_all() -> Self
+    where
+        RMatch: ExtendedMatcher,
+        AMatch: ExtendedMatcher,
+    {
+        Assertion::deny_all().into()
+    }
+
+    pub fn allow_any() -> Self
+    where
+        RMatch: ExtendedMatcher,
+        AMatch: ExtendedMatcher,
+    {
+        Assertion::allow_any().into()
+    }
 
     //     pub fn allow_all() -> Self
     //     where
@@ -114,6 +118,14 @@ impl<RMatch, AMatch, CExp> From<Vec<Assertion<RMatch, AMatch, CExp>>>
 {
     fn from(items: Vec<Assertion<RMatch, AMatch, CExp>>) -> Self {
         Policy(items)
+    }
+}
+
+impl<RMatch, AMatch, CExp> From<Assertion<RMatch, AMatch, CExp>>
+    for Policy<Assertion<RMatch, AMatch, CExp>>
+{
+    fn from(item: Assertion<RMatch, AMatch, CExp>) -> Self {
+        vec![item].into()
     }
 }
 
@@ -253,9 +265,6 @@ mod tests {
     static A: &str = "a";
     static A2: &str = "a2";
 
-    // type OldTestAssertion = Assertion<StrMatcher, StrMatcher, ()>;
-    // type OldTestPolicy = Policy<OldTestAssertion>;
-
     type TestAssertion = Assertion<StrMatcher, StrMatcher, bool>;
     type TestPolicy = Policy<TestAssertion>;
 
@@ -353,6 +362,22 @@ mod tests {
             StrMatcher::match_any(),
             Effect::ALLOW,
         );
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_policy_deny_all() {
+        let actual: TestPolicy = Policy::deny_all();
+        let expected: TestPolicy = TestAssertion::deny_all().into();
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_policy_allow_any() {
+        let actual: TestPolicy = Policy::allow_any();
+        let expected: TestPolicy = TestAssertion::allow_any().into();
 
         assert_eq!(actual, expected);
     }
