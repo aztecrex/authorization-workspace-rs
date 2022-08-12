@@ -98,40 +98,40 @@ impl Silent for ComputedEffect2 {
     }
 }
 
-/// Result of an authorization computation. Represents
-/// definite `Effect` plus an additional value representing no
-/// (i.e. silent) effect. It is equivalent to `Option<Effect>` but defined
-/// as a newtype for symbolic clarity and for implementing standard traits.
-#[derive(PartialEq, Eq, Debug, Clone, Copy, Default)]
-pub struct ComputedEffect(Option<Effect>);
+// /// Result of an authorization computation. Represents
+// /// definite `Effect` plus an additional value representing no
+// /// (i.e. silent) effect. It is equivalent to `Option<Effect>` but defined
+// /// as a newtype for symbolic clarity and for implementing standard traits.
+// #[derive(PartialEq, Eq, Debug, Clone, Copy, Default)]
+// pub struct ComputedEffect(Option<Effect>);
 
-/// No effect. Alone this means an action is not authorized. In conbination
-/// with other effects, its meaning depends on the type of combaination.
-pub const SILENT: ComputedEffect = ComputedEffect(None);
+// /// No effect. Alone this means an action is not authorized. In conbination
+// /// with other effects, its meaning depends on the type of combaination.
+// pub const SILENT: ComputedEffect = ComputedEffect(None);
 
-/// Definitely Authorized
-pub const ALLOW: ComputedEffect = ComputedEffect(Some(Effect::ALLOW));
+// /// Definitely Authorized
+// pub const ALLOW: ComputedEffect = ComputedEffect(Some(Effect::ALLOW));
 
-/// Definitely Unauthorized
-pub const DENY: ComputedEffect = ComputedEffect(Some(Effect::DENY));
+// /// Definitely Unauthorized
+// pub const DENY: ComputedEffect = ComputedEffect(Some(Effect::DENY));
 
-impl From<Effect> for ComputedEffect {
-    fn from(permission: Effect) -> Self {
-        ComputedEffect(Some(permission))
-    }
-}
+// impl From<Effect> for ComputedEffect {
+//     fn from(permission: Effect) -> Self {
+//         ComputedEffect(Some(permission))
+//     }
+// }
 
-impl From<Option<Effect>> for ComputedEffect {
-    fn from(maybe_permission: Option<Effect>) -> Self {
-        ComputedEffect(maybe_permission)
-    }
-}
+// impl From<Option<Effect>> for ComputedEffect {
+//     fn from(maybe_permission: Option<Effect>) -> Self {
+//         ComputedEffect(maybe_permission)
+//     }
+// }
 
-impl Authorized for ComputedEffect {
-    fn authorized(&self) -> bool {
-        self.0.map_or(false, |e| e == Effect::ALLOW)
-    }
-}
+// impl Authorized for ComputedEffect {
+//     fn authorized(&self) -> bool {
+//         self.0.map_or(false, |e| e == Effect::ALLOW)
+//     }
+// }
 
 // /// Combine multiple `ComputedEffect`s in non-strict fashion. The result is
 // /// `ALLOW` if and only if there is at least one `ALLOW` constituent and
@@ -204,19 +204,19 @@ mod tests {
     #[test]
     #[allow(clippy::bool_assert_comparison)]
     fn test_authorized_definite_allow() {
-        assert_eq!(ALLOW.authorized(), true);
+        assert_eq!(ALLOW2.authorized(), true);
     }
 
     #[test]
     #[allow(clippy::bool_assert_comparison)]
     fn test_not_authorized_definite_deny() {
-        assert_eq!(DENY.authorized(), false);
+        assert_eq!(DENY2.authorized(), false);
     }
 
     #[test]
     #[allow(clippy::bool_assert_comparison)]
     fn test_not_authorized_silent() {
-        assert_eq!(SILENT.authorized(), false);
+        assert_eq!(SILENT2.authorized(), false);
     }
 
     #[test]
