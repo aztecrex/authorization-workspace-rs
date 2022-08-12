@@ -28,6 +28,7 @@ pub enum Assertion<RMatch, AMatch, CExp> {
 }
 
 impl<RMatch, AMatch, CExp> Assertion<RMatch, AMatch, CExp> {
+    /// Create an asserion that all access is denied.
     pub fn deny_all() -> Self
     where
         RMatch: ExtendedMatcher,
@@ -36,6 +37,7 @@ impl<RMatch, AMatch, CExp> Assertion<RMatch, AMatch, CExp> {
         Assertion::Unconditional(RMatch::match_any(), AMatch::match_any(), Effect::DENY)
     }
 
+    /// Create an asserion that any access is allowed.
     pub fn allow_any() -> Self
     where
         RMatch: ExtendedMatcher,
@@ -57,6 +59,7 @@ impl<RMatch, AMatch, CExp> Policy<Assertion<RMatch, AMatch, CExp>> {
         self.0.iter()
     }
 
+    /// Create a policy that denies all access.
     pub fn deny_all() -> Self
     where
         RMatch: ExtendedMatcher,
@@ -65,6 +68,7 @@ impl<RMatch, AMatch, CExp> Policy<Assertion<RMatch, AMatch, CExp>> {
         Assertion::deny_all().into()
     }
 
+    /// Create a policy that allows any access.
     pub fn allow_any() -> Self
     where
         RMatch: ExtendedMatcher,
