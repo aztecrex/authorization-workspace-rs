@@ -121,4 +121,42 @@ mod tests {
     //     check(vec![ALLOW, SILENT, SILENT, ALLOW, SILENT], SILENT);
     //     check(vec![DENY, SILENT, SILENT, ALLOW, SILENT], SILENT);
     // }
+
+    // #[test]
+    // fn test_disjoint() {
+    //     let Matchers { m_r, m_a, miss, .. } = Matchers::new();
+
+    //     let policies = vec![
+    //         Policy::Conditional(m_r, m_a, Effect::ALLOW, 18),
+    //         Policy::Conditional(m_r, m_a, Effect::DENY, 19),
+    //         Policy::Unconditional(m_r, m_a, Effect::ALLOW),
+    //         Policy::Unconditional(m_r, m_a, Effect::DENY),
+    //         Policy::Conditional(m_r, miss, Effect::ALLOW, 20),
+    //         Policy::Conditional(miss, m_a, Effect::DENY, 21),
+    //         Policy::Unconditional(miss, m_a, Effect::ALLOW),
+    //         Policy::Unconditional(m_r, miss, Effect::DENY),
+    //         Policy::Complex(vec![Policy::Complex(vec![
+    //             Policy::Conditional(m_r, m_a, Effect::ALLOW, 18),
+    //             Policy::Conditional(m_r, m_a, Effect::DENY, 19),
+    //             Policy::Unconditional(m_r, m_a, Effect::ALLOW),
+    //             Policy::Unconditional(m_r, m_a, Effect::DENY),
+    //             Policy::Conditional(m_r, miss, Effect::ALLOW, 20),
+    //             Policy::Conditional(miss, m_a, Effect::DENY, 21),
+    //             Policy::Unconditional(miss, m_a, Effect::ALLOW),
+    //             Policy::Unconditional(m_r, miss, Effect::DENY),
+    //         ])]),
+    //     ];
+    //     let r = "r";
+    //     let a = "a";
+
+    //     let actual = apply_disjoint(policies.clone(), &r, &a);
+
+    //     let expected = DependentEffect::Strict(
+    //         policies
+    //             .iter()
+    //             .map(|p| p.clone().apply(&"r", &"a"))
+    //             .collect(),
+    //     );
+    //     assert_eq!(actual, expected);
+    // }
 }
