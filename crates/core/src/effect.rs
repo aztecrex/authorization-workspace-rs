@@ -10,6 +10,8 @@
 //! be no policy that explicitly denies the action. If all resolved policies are
 //! silent or if there are no policies at all, an action is implicitly denied.
 
+use std::borrow::Borrow;
+
 /// Compute authorization for an effect.
 /// Determine if Effect authorizes access. The only effect that authorizes
 /// access is `Effect::ALLOW`.
@@ -51,7 +53,7 @@ impl Silent for Effect {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
 pub struct ComputedEffect(Option<Effect>);
 
 pub const SILENT: ComputedEffect = ComputedEffect(None);
@@ -89,18 +91,16 @@ impl Silent for ComputedEffect {
 
 impl<E> FromIterator<E> for ComputedEffect
 where
-    E: Into<ComputedEffect>,
+    E: Borrow<ComputedEffect>,
 {
     fn from_iter<T: IntoIterator<Item = E>>(items: T) -> Self {
         items
             .into_iter()
-            .fold(None, |acc, e| match (acc, e.into()) {
-                (None, v) => Some(v),
-                (Some(SILENT), _) | (_, SILENT) => Some(SILENT),
-                (Some(ALLOW), ALLOW) => Some(ALLOW),
-                _ => Some(DENY),
+            .fold(SILENT, |acc, effect| match (acc, *effect.borrow()) {
+                (SILENT, x) | (x, SILENT) => x,
+                (DENY, _) | (_, DENY) => DENY,
+                _ => ALLOW,
             })
-            .unwrap_or(SILENT)
     }
 }
 
@@ -198,31 +198,33 @@ mod tests {
         assert!(!Effect::DENY.silent());
     }
 
-    // #[test]
-    // fn test_combine_non_strict() {
-    //     fn check<I>(effs: I, expected: ComputedEffect)
-    //     where
-    //         I: IntoIterator<Item = ComputedEffect>,
-    //     {
-    //         assert_eq!(combine_non_strict(effs), expected);
-    //     }
+    #[test]
+    fn collect_computed() {
+        fn check<const N: usize>(effs: [ComputedEffect; N], expected: ComputedEffect) {
+            assert_eq!(effs.iter().collect::<ComputedEffect>(), expected);
+        }
 
-    //     check(vec![DENY, DENY, DENY], DENY);
-    //     check(vec![DENY, DENY, ALLOW], DENY);
-    //     check(vec![DENY, ALLOW, DENY], DENY);
-    //     check(vec![DENY, ALLOW, ALLOW], DENY);
-    //     check(vec![ALLOW, DENY, DENY], DENY);
-    //     check(vec![ALLOW, DENY, ALLOW], DENY);
-    //     check(vec![ALLOW, ALLOW, DENY], DENY);
+        check([DENY, DENY, DENY], DENY);
 
-    //     check(vec![ALLOW, ALLOW, ALLOW], ALLOW);
+        check([DENY, DENY, DENY], DENY);
+        check([DENY, DENY, ALLOW], DENY);
+        check([DENY, ALLOW, DENY], DENY);
+        check([DENY, ALLOW, ALLOW], DENY);
+        check([ALLOW, DENY, DENY], DENY);
+        check([ALLOW, DENY, ALLOW], DENY);
+        check([ALLOW, ALLOW, DENY], DENY);
 
-    //     check(vec![], SILENT);
-    //     check(vec![SILENT, SILENT], SILENT);
-    //     check(vec![SILENT, DENY, SILENT, DENY, SILENT], DENY);
-    //     check(vec![SILENT, DENY, SILENT, ALLOW, SILENT], DENY);
-    //     check(vec![SILENT, ALLOW, SILENT, ALLOW, SILENT], ALLOW);
-    // }
+        check([ALLOW, ALLOW, ALLOW], ALLOW);
+
+        check([], SILENT);
+        check([SILENT, SILENT], SILENT);
+
+        check([SILENT, DENY /* SILENT, DENY, SILENT */], DENY);
+
+        // check([SILENT, DENY, SILENT, DENY, SILENT], DENY);
+        // check([SILENT, DENY, SILENT, ALLOW, SILENT], DENY);
+        // check([SILENT, ALLOW, SILENT, ALLOW, SILENT], ALLOW);
+    }
 
     // #[test]
     // fn test_combine_strict() {
