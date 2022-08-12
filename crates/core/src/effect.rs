@@ -148,32 +148,38 @@ mod tests {
 
     #[test]
     #[allow(clippy::bool_assert_comparison)]
-    fn test_authorized_definite_allow() {
+    fn test_computed_allow_authorized() {
         assert_eq!(ALLOW.authorized(), true);
     }
 
     #[test]
-    #[allow(clippy::bool_assert_comparison)]
-    fn test_not_authorized_definite_deny() {
-        assert_eq!(DENY.authorized(), false);
+    fn test_computed_deny_not_authorized_() {
+        assert!(!DENY.authorized());
     }
 
     #[test]
-    #[allow(clippy::bool_assert_comparison)]
-    fn test_not_authorized_silent() {
-        assert_eq!(SILENT.authorized(), false);
+    fn test_computed_silent_not_authorized() {
+        assert!(!SILENT.authorized());
     }
 
     #[test]
-    #[allow(clippy::bool_assert_comparison)]
-    fn test_authorized_effect_allow() {
-        assert_eq!(Effect::ALLOW.authorized(), true);
+    fn test_effect_allow_authorized() {
+        assert!(Effect::ALLOW.authorized());
     }
 
     #[test]
-    #[allow(clippy::bool_assert_comparison)]
-    fn test_unauthorized_effect_deny() {
-        assert_eq!(Effect::DENY.authorized(), false);
+    fn test_effect_deny_not_authorized() {
+        assert!(!Effect::DENY.authorized());
+    }
+
+    #[test]
+    fn test_effect_allow_not_silent() {
+        assert!(!Effect::ALLOW.silent());
+    }
+
+    #[test]
+    fn test_effect_deny_not_silent() {
+        assert!(!Effect::DENY.silent());
     }
 
     // #[test]
