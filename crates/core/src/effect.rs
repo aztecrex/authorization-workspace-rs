@@ -1,14 +1,32 @@
 //! Authorization effects.
 //!
-//! Authorization to perform an action on a resource is goverened by policies
-//! that resolve into effects. The basic effect is either `ALLOW` or `DENY`. However,
-//! resolving a policy might result in SILENCE. i.e. the policy does not either
-//! explicitly allow or deny the action.
+//! Effects are the common expression of authorization with respect to a principal.
 //!
-//! When combining policies for a principal, the fundamental rule is that there
-//! must exist at least one policy that explicitly allows an action and there must
-//! be no policy that explicitly denies the action. If all resolved policies are
-//! silent or if there are no policies at all, an action is implicitly denied.
+//! This module defines two types of effects, definite and computed. Definit effects
+//! are used in policy expressions to configure authority (or denial of authority)
+//! under applicable conditions. A definit effect is one of two values, Allow or Deny.
+//!
+//! Computed effects are used to capture policy evaluation results and add an additiional
+//! silence value to account for cases where a policy does not apply to conditions.
+//!
+//! This module also defines how to combine computed effects for a principal. The basic
+//! combination rules are:
+//!
+//! 1. Deny combined with any other effect results in Deny
+//! 2. Silence combined with any other effect results in the other effect.
+//! 3. Allow combined with Allow results in Allow
+//!
+//! Combining policies is associative and commutative. Thus folding a sequence of computed
+//! effects results in the same value irrespective of the order they are combined.
+//!
+//! Combing a sequence of effects requires two additional rules to cover degenerate cases:
+//!
+//! 1. An empty sequence results in Silence
+//! 2. A singular sequence results in the value of the sole effect in the sequence
+//!
+//! This folding operation is captured in the FromIterator implementation of ComputedEffect and
+//! thus an iterator of ComputedEffects can be 'collect'ed' into a single ComputedEffect.
+//!
 
 use std::borrow::Borrow;
 

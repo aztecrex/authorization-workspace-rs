@@ -1,5 +1,5 @@
-//! Policy configurations. A policy is a statement of explicit authorization or denial to
-//! perform an action on a resource.
+//! Policy configurations. A policy states the authorization configuration for a
+//! principal. Evaluation of policy results in a computed effect.
 
 use crate::environment::Environment;
 
