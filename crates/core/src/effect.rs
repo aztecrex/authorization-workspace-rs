@@ -98,6 +98,15 @@ impl Silent for ComputedEffect {
     }
 }
 
+// pub fn union(a: ComputedEffect, b: ComputedEffect) -> ComputedEffect {
+//     match (a, b) {
+//         (SILENT, B) => B,
+//         (A, SILENT) => A,
+//         (DENY, _) | (_, DENY) => DENY,
+//         _ => ALLOW,
+//     }
+// }
+
 // / Combine mutiple computed effects in strict fashion. The result is `ALLOW` if
 // / and only if there is at least one constituent effect and every consituent
 // / effect is `ALLOW`. Any consituent silence will result in silence. If all
