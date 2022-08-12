@@ -149,17 +149,33 @@ mod tests {
     #[test]
     #[allow(clippy::bool_assert_comparison)]
     fn test_computed_allow_authorized() {
-        assert_eq!(ALLOW.authorized(), true);
+        assert!(ALLOW.authorized());
     }
 
     #[test]
-    fn test_computed_deny_not_authorized_() {
+    #[allow(clippy::bool_assert_comparison)]
+    fn test_computed_allow_not_silent() {
+        assert!(!ALLOW.silent());
+    }
+
+    #[test]
+    fn test_computed_deny_not_authorized() {
         assert!(!DENY.authorized());
+    }
+
+    #[test]
+    fn test_computed_deny_not_silent() {
+        assert!(!DENY.silent());
     }
 
     #[test]
     fn test_computed_silent_not_authorized() {
         assert!(!SILENT.authorized());
+    }
+
+    #[test]
+    fn test_computed_silent_silent() {
+        assert!(SILENT.silent());
     }
 
     #[test]
