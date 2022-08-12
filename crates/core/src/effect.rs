@@ -52,16 +52,13 @@ impl Silent for Effect {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
-pub enum ComputedEffect {
-    Complex(Vec<ComputedEffect>),
-    Definite(Effect),
-}
+pub struct ComputedEffect(Option<Effect>);
 
-pub const SILENT: ComputedEffect = ComputedEffect::Complex(vec![]);
+pub const SILENT: ComputedEffect = ComputedEffect(None);
 
-pub const ALLOW: ComputedEffect = ComputedEffect::Definite(Effect::ALLOW);
+pub const ALLOW: ComputedEffect = ComputedEffect(Some(Effect::ALLOW));
 
-pub const DENY: ComputedEffect = ComputedEffect::Definite(Effect::DENY);
+pub const DENY: ComputedEffect = ComputedEffect(Some(Effect::DENY));
 
 impl From<Effect> for ComputedEffect {
     fn from(effect: Effect) -> Self {
@@ -80,32 +77,32 @@ impl From<&Effect> for ComputedEffect {
 
 impl Authorized for ComputedEffect {
     fn authorized(&self) -> bool {
-        match self {
-            ComputedEffect::Definite(eff) => eff.authorized(),
-            ComputedEffect::Complex(ts) => {
-                ts.iter().any(|t| !t.silent()) && !ts.iter().any(|t| !t.silent() && !t.authorized())
-            }
-        }
+        *self == ALLOW
     }
 }
 
 impl Silent for ComputedEffect {
     fn silent(&self) -> bool {
-        match self {
-            ComputedEffect::Definite(_) => false,
-            ComputedEffect::Complex(ts) => ts.iter().all(|t| t.silent()),
-        }
+        *self == SILENT
     }
 }
 
-// pub fn union(a: ComputedEffect, b: ComputedEffect) -> ComputedEffect {
-//     match (a, b) {
-//         (SILENT, B) => B,
-//         (A, SILENT) => A,
-//         (DENY, _) | (_, DENY) => DENY,
-//         _ => ALLOW,
-//     }
-// }
+impl<E> FromIterator<E> for ComputedEffect
+where
+    E: Into<ComputedEffect>,
+{
+    fn from_iter<T: IntoIterator<Item = E>>(items: T) -> Self {
+        items
+            .into_iter()
+            .fold(None, |acc, e| match (acc, e.into()) {
+                (None, v) => Some(v),
+                (Some(SILENT), _) | (_, SILENT) => Some(SILENT),
+                (Some(ALLOW), ALLOW) => Some(ALLOW),
+                _ => Some(DENY),
+            })
+            .unwrap_or(SILENT)
+    }
+}
 
 // / Combine mutiple computed effects in strict fashion. The result is `ALLOW` if
 // / and only if there is at least one constituent effect and every consituent
