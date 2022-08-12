@@ -104,44 +104,6 @@ where
     }
 }
 
-// / Combine mutiple computed effects in strict fashion. The result is `ALLOW` if
-// / and only if there is at least one constituent effect and every consituent
-// / effect is `ALLOW`. Any consituent silence will result in silence. If all
-// / constituents are definite (and there is a least one), conbination works
-// / the same as for non-strict wherein any consituent `DENY` results in `DENY`.
-// /
-// / As with non-strict, if there are no constituents, the result is `SILENT`.
-// /
-// / This function is used to combine effects for composite principals where a result
-// / is determined for each atomic principal. In this case, access is authorized if
-// / and only if access is authorized for each atomic principal. Silence is preserved
-// / so the result can be further combined if needed.
-// /
-// / A way to think about ths is by imagining a composite principal consisting of
-// / a user and, say, an application. In order to allow an operation, both the user
-// / and application must be authorized. However, if either the determination is
-// / silent for either principal, we can consider the composite question of authorization
-// / to be unmatched, i.e. SILENT.
-// /
-// / If a final result is SILENT, then authorization is denied per the basic rule but
-// / we return SILENCE so that the caller can understand the reason is that no
-// / policy reads on the request rather than an expicit denial.
-// /
-// fn combine_strict<I>(effs: I) -> ComputedEffect
-// where
-//     I: IntoIterator<Item = ComputedEffect>,
-// {
-//     effs.into_iter()
-//         .fold(None, |a, e| match (a, e) {
-//             (None, x) => Some(x),
-//             (Some(SILENT), _) => Some(SILENT),
-//             (_, SILENT) => Some(SILENT),
-//             (Some(ALLOW), ALLOW) => Some(ALLOW),
-//             _ => Some(DENY),
-//         })
-//         .unwrap_or(SILENT)
-// }
-
 #[cfg(test)]
 mod tests {
     use super::*;
