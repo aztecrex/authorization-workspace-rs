@@ -45,10 +45,13 @@ pub enum Effect {
 /// evalutation does not apply under given conditions.
 pub struct ComputedEffect(Option<Effect>);
 
+/// Evaluated configuration does not apply under given conditions.
 pub const SILENT: ComputedEffect = ComputedEffect(None);
 
+/// Evaluated configuration definitely allows under given conditions.
 pub const ALLOW: ComputedEffect = ComputedEffect(Some(Effect::ALLOW));
 
+/// Evaluated configuration definitely denies under given conditions.
 pub const DENY: ComputedEffect = ComputedEffect(Some(Effect::DENY));
 
 impl ComputedEffect {
