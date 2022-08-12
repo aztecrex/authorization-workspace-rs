@@ -99,7 +99,7 @@ where
             .fold(SILENT, |acc, effect| match (acc, *effect.borrow()) {
                 (SILENT, x) | (x, SILENT) => x,
                 (DENY, _) | (_, DENY) => DENY,
-                _ => ALLOW,
+                (ALLOW, ALLOW) => ALLOW,
             })
     }
 }
@@ -219,11 +219,9 @@ mod tests {
         check([], SILENT);
         check([SILENT, SILENT], SILENT);
 
-        check([SILENT, DENY /* SILENT, DENY, SILENT */], DENY);
-
-        // check([SILENT, DENY, SILENT, DENY, SILENT], DENY);
-        // check([SILENT, DENY, SILENT, ALLOW, SILENT], DENY);
-        // check([SILENT, ALLOW, SILENT, ALLOW, SILENT], ALLOW);
+        check([SILENT, DENY, SILENT, DENY, SILENT], DENY);
+        check([SILENT, DENY, SILENT, ALLOW, SILENT], DENY);
+        check([SILENT, ALLOW, SILENT, ALLOW, SILENT], ALLOW);
     }
 
     // #[test]
