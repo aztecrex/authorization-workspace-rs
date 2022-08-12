@@ -98,7 +98,7 @@ where
             .into_iter()
             .fold(SILENT, |acc, effect| match (acc, *effect.borrow()) {
                 (SILENT, x) | (x, SILENT) => x,
-                (DENY, _) | (_, DENY) => DENY,
+                (DENY, ComputedEffect(Some(_))) | (ALLOW, DENY) => DENY,
                 (ALLOW, ALLOW) => ALLOW,
             })
     }
