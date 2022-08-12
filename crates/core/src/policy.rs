@@ -1,5 +1,12 @@
-//! Policy configurations. A policy states the authorization configuration for a
-//! principal. Evaluation of policy results in a computed effect.
+//! Policy configuration and evaluation. A policy states the authorization configuration for a
+//! principal. A policy can be evaluated against three kinds of conditions:
+//! 1. Resource: a policy applies to specified subject resoureces
+//! 1. Action: a policy applies to specified subject actions
+//! 1. Environment: a policy applies under specified environmental conditions
+//!
+//! A policy is modeled as a set of [primitive rules](Assertion), each of which selects
+//! the [definite effect](Effect) of matching some conditions.
+//!
 
 use crate::environment::Environment;
 
@@ -9,21 +16,34 @@ use super::matcher::*;
 /// Authorization policy assertion.
 ///
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// Authorization poliicy primitve rule. Describes an effect of meeting
+/// resource, action, and environmental conditions.
 pub enum Assertion<RMatch, AMatch, CExp> {
-    /// Applies if resource and action match but does not depend
-    /// on a condition.
+    /// Rule that matches under any environmental condition. Available to simplify
+    /// expression for systems  that do not use environmental evaluation.
     Unconditional(RMatch, AMatch, Effect),
 
-    /// Applies if resource and action match and the condition applies in the
-    /// evaluation environment.
+    /// Rule that matches resource, action, and environmental conditions.
     Conditional(RMatch, AMatch, Effect, CExp),
-    // /// Colledction of policies allowing for recursive composition. Although
-    // /// the collection is implemented as a Vec, order is not important. Policy
-    // /// processing is free to re-order the results.
-    // Compound(Vec<Self>),
 }
 
 impl<RMatch, AMatch, CExp> Assertion<RMatch, AMatch, CExp> {
+    pub fn deny_all() -> Self
+    where
+        RMatch: ExtendedMatcher,
+        AMatch: ExtendedMatcher,
+    {
+        Assertion::Unconditional(RMatch::match_any(), AMatch::match_any(), Effect::DENY)
+    }
+
+    pub fn allow_any() -> Self
+    where
+        RMatch: ExtendedMatcher,
+        AMatch: ExtendedMatcher,
+    {
+        Assertion::Unconditional(RMatch::match_any(), AMatch::match_any(), Effect::ALLOW)
+    }
+
     pub fn for_subject(&self) -> SubjectAssertion<CExp> {
         todo!();
     }
@@ -36,6 +56,30 @@ impl<RMatch, AMatch, CExp> Policy<Assertion<RMatch, AMatch, CExp>> {
     pub fn iter(&self) -> impl Iterator<Item = &Assertion<RMatch, AMatch, CExp>> {
         self.0.iter()
     }
+
+    //     pub fn deny_all() -> Self
+    //     where
+    //         RMatch: ExtendedMatcher,
+    //         AMatch: ExtendedMatcher,
+    //     {
+    //         Policy(vec![Assertion::Unconditional(
+    //             RMatch::match_any(),
+    //             AMatch::match_any(),
+    //             Effect::DENY,
+    //         )])
+    //     }
+
+    //     pub fn allow_all() -> Self
+    //     where
+    //         RMatch: ExtendedMatcher,
+    //         AMatch: ExtendedMatcher,
+    //     {
+    //         Policy(vec![Assertion::Unconditional(
+    //             RMatch::match_any(),
+    //             AMatch::match_any(),
+    //             Effect::ALLOW,
+    //         )])
+    //     }
 
     /// Supply an iterator over assertions that match the provided subject (resource and action).
     /// Matched policies are converted to SubjectPolicy's. The iterator supplies its results
@@ -287,6 +331,30 @@ mod tests {
         let actual = policy.apply(&R, &A, &PositiveEnvironment::default());
 
         assert_eq!(actual, ALLOW);
+    }
+
+    #[test]
+    fn test_assertion_deny_all() {
+        let actual: TestAssertion = Assertion::deny_all();
+        let expected: TestAssertion = Assertion::Unconditional(
+            StrMatcher::match_any(),
+            StrMatcher::match_any(),
+            Effect::DENY,
+        );
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_assertion_allow_any() {
+        let actual: TestAssertion = Assertion::allow_any();
+        let expected: TestAssertion = Assertion::Unconditional(
+            StrMatcher::match_any(),
+            StrMatcher::match_any(),
+            Effect::ALLOW,
+        );
+
+        assert_eq!(actual, expected);
     }
 
     // #[test]
