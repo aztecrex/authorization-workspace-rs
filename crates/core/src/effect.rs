@@ -52,48 +52,48 @@ impl Silent for Effect {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
-pub enum ComputedEffect2 {
-    Complex(Vec<ComputedEffect2>),
+pub enum ComputedEffect {
+    Complex(Vec<ComputedEffect>),
     Definite(Effect),
 }
 
-pub const SILENT2: ComputedEffect2 = ComputedEffect2::Complex(vec![]);
+pub const SILENT: ComputedEffect = ComputedEffect::Complex(vec![]);
 
-pub const ALLOW2: ComputedEffect2 = ComputedEffect2::Definite(Effect::ALLOW);
+pub const ALLOW: ComputedEffect = ComputedEffect::Definite(Effect::ALLOW);
 
-pub const DENY2: ComputedEffect2 = ComputedEffect2::Definite(Effect::DENY);
+pub const DENY: ComputedEffect = ComputedEffect::Definite(Effect::DENY);
 
-impl From<Effect> for ComputedEffect2 {
+impl From<Effect> for ComputedEffect {
     fn from(effect: Effect) -> Self {
         match effect {
-            Effect::ALLOW => ALLOW2,
-            Effect::DENY => DENY2,
+            Effect::ALLOW => ALLOW,
+            Effect::DENY => DENY,
         }
     }
 }
 
-impl From<&Effect> for ComputedEffect2 {
+impl From<&Effect> for ComputedEffect {
     fn from(permission: &Effect) -> Self {
-        ComputedEffect2::from(*permission)
+        ComputedEffect::from(*permission)
     }
 }
 
-impl Authorized for ComputedEffect2 {
+impl Authorized for ComputedEffect {
     fn authorized(&self) -> bool {
         match self {
-            ComputedEffect2::Definite(eff) => eff.authorized(),
-            ComputedEffect2::Complex(ts) => {
+            ComputedEffect::Definite(eff) => eff.authorized(),
+            ComputedEffect::Complex(ts) => {
                 ts.iter().any(|t| !t.silent()) && !ts.iter().any(|t| !t.silent() && !t.authorized())
             }
         }
     }
 }
 
-impl Silent for ComputedEffect2 {
+impl Silent for ComputedEffect {
     fn silent(&self) -> bool {
         match self {
-            ComputedEffect2::Definite(_) => false,
-            ComputedEffect2::Complex(ts) => ts.iter().all(|t| t.silent()),
+            ComputedEffect::Definite(_) => false,
+            ComputedEffect::Complex(ts) => ts.iter().all(|t| t.silent()),
         }
     }
 }
@@ -204,19 +204,19 @@ mod tests {
     #[test]
     #[allow(clippy::bool_assert_comparison)]
     fn test_authorized_definite_allow() {
-        assert_eq!(ALLOW2.authorized(), true);
+        assert_eq!(ALLOW.authorized(), true);
     }
 
     #[test]
     #[allow(clippy::bool_assert_comparison)]
     fn test_not_authorized_definite_deny() {
-        assert_eq!(DENY2.authorized(), false);
+        assert_eq!(DENY.authorized(), false);
     }
 
     #[test]
     #[allow(clippy::bool_assert_comparison)]
     fn test_not_authorized_silent() {
-        assert_eq!(SILENT2.authorized(), false);
+        assert_eq!(SILENT.authorized(), false);
     }
 
     #[test]

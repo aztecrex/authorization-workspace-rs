@@ -138,7 +138,7 @@ where
         }
     }
 
-    pub fn apply<Env>(&self, resource: &R, action: &A, environment: &Env) -> ComputedEffect2
+    pub fn apply<Env>(&self, resource: &R, action: &A, environment: &Env) -> ComputedEffect
     where
         Env: Environment<CExp = CExp>,
     {
@@ -148,7 +148,7 @@ where
                 Conditional(_, _, eff, _) | Unconditional(_, _, eff) => eff.into(),
             }
         } else {
-            SILENT2
+            SILENT
         }
     }
 }
@@ -243,7 +243,7 @@ mod tests {
 
         let actual = policy.apply(&R, &A, &PositiveEnvironment::default());
 
-        assert_eq!(actual, ALLOW2);
+        assert_eq!(actual, ALLOW);
     }
 
     #[test]
@@ -254,7 +254,7 @@ mod tests {
 
         let actual = policy.apply(&R, &A, &PositiveEnvironment::default());
 
-        assert_eq!(actual, DENY2);
+        assert_eq!(actual, DENY);
     }
 
     #[test]
@@ -265,7 +265,7 @@ mod tests {
 
         let actual = policy.apply(&R, &A, &PositiveEnvironment::default());
 
-        assert_eq!(actual, SILENT2);
+        assert_eq!(actual, SILENT);
     }
 
     #[test]
@@ -276,7 +276,7 @@ mod tests {
 
         let actual = policy.apply(&R, &A, &PositiveEnvironment::default());
 
-        assert_eq!(actual, SILENT2);
+        assert_eq!(actual, SILENT);
     }
 
     #[test]
@@ -286,7 +286,7 @@ mod tests {
 
         let actual = policy.apply(&R, &A, &PositiveEnvironment::default());
 
-        assert_eq!(actual, ALLOW2);
+        assert_eq!(actual, ALLOW);
     }
 
     // #[test]
