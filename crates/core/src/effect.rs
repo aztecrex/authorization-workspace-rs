@@ -54,18 +54,21 @@ impl ComputedEffect {
     }
 }
 
-impl From<Effect> for ComputedEffect {
-    fn from(effect: Effect) -> Self {
-        match effect {
+impl<E> From<E> for ComputedEffect
+where
+    E: Borrow<Effect>,
+{
+    fn from(effect: E) -> Self {
+        match effect.borrow() {
             Effect::ALLOW => ALLOW,
             Effect::DENY => DENY,
         }
     }
 }
 
-impl From<&Effect> for ComputedEffect {
-    fn from(permission: &Effect) -> Self {
-        ComputedEffect::from(*permission)
+impl Into<Option<Effect>> for &ComputedEffect {
+    fn into(self) -> Option<Effect> {
+        self.0
     }
 }
 
