@@ -98,67 +98,6 @@ impl Silent for ComputedEffect {
     }
 }
 
-// /// Result of an authorization computation. Represents
-// /// definite `Effect` plus an additional value representing no
-// /// (i.e. silent) effect. It is equivalent to `Option<Effect>` but defined
-// /// as a newtype for symbolic clarity and for implementing standard traits.
-// #[derive(PartialEq, Eq, Debug, Clone, Copy, Default)]
-// pub struct ComputedEffect(Option<Effect>);
-
-// /// No effect. Alone this means an action is not authorized. In conbination
-// /// with other effects, its meaning depends on the type of combaination.
-// pub const SILENT: ComputedEffect = ComputedEffect(None);
-
-// /// Definitely Authorized
-// pub const ALLOW: ComputedEffect = ComputedEffect(Some(Effect::ALLOW));
-
-// /// Definitely Unauthorized
-// pub const DENY: ComputedEffect = ComputedEffect(Some(Effect::DENY));
-
-// impl From<Effect> for ComputedEffect {
-//     fn from(permission: Effect) -> Self {
-//         ComputedEffect(Some(permission))
-//     }
-// }
-
-// impl From<Option<Effect>> for ComputedEffect {
-//     fn from(maybe_permission: Option<Effect>) -> Self {
-//         ComputedEffect(maybe_permission)
-//     }
-// }
-
-// impl Authorized for ComputedEffect {
-//     fn authorized(&self) -> bool {
-//         self.0.map_or(false, |e| e == Effect::ALLOW)
-//     }
-// }
-
-// /// Combine multiple `ComputedEffect`s in non-strict fashion. The result is
-// /// `ALLOW` if and only if there is at least one `ALLOW` constituent and
-// /// no `DENY` constituents.
-// ///
-// /// This is used when combining policies for a single principal. The
-// /// result is `SILENT` if there are no consituents or if all constituents
-// /// are silence. Otherwise silence is ignored and any `DENY` consituent will
-// /// cause the result to be `DENY`.
-// ///
-// /// # Examples
-// ///
-// /// ```
-// /// use authorization_core::effect::*;
-// ///
-// fn combine_non_strict<I>(effs: I) -> ComputedEffect
-// where
-//     I: IntoIterator<Item = ComputedEffect>,
-// {
-//     effs.into_iter().fold(SILENT, |a, e| match (a, e) {
-//         (SILENT, x) => x,
-//         (x, SILENT) => x,
-//         (ALLOW, ALLOW) => ALLOW,
-//         _ => DENY,
-//     })
-// }
-
 // / Combine mutiple computed effects in strict fashion. The result is `ALLOW` if
 // / and only if there is at least one constituent effect and every consituent
 // / effect is `ALLOW`. Any consituent silence will result in silence. If all
