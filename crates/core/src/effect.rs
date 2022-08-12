@@ -2,9 +2,9 @@
 //!
 //! Effects are the common expression of authorization with respect to a principal.
 //!
-//! This module defines two types of effects, definite and computed. Definit effects
+//! This module defines two types of effects, definite and computed. Definite effects
 //! are used in policy expressions to configure authority (or denial of authority)
-//! under applicable conditions. A definit effect is one of two values, Allow or Deny.
+//! under applicable conditions. A definite effect is one of two values, Allow or Deny.
 //!
 //! Computed effects are used to capture policy evaluation results and add an additiional
 //! silence value to account for cases where a policy does not apply to conditions.
