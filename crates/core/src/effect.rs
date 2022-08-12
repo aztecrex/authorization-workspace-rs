@@ -2,27 +2,28 @@
 //!
 //! Effects are the common expression of authorization with respect to a principal.
 //!
-//! This module defines two types of effects, definite and computed. Definite effects
-//! are used in policy expressions to configure authority (or denial of authority)
-//! under applicable conditions. A definite effect is one of two values, Allow or Deny.
+//! This module defines two types of effects, [definite](Effect) and [computed](ComputedEffect).
+//! Definite effects are used in policy expressions to configure authority (or denial of authority)
+//! under applicable conditions. A definite effect is one of two values, [allow](Effect::ALLOW) or
+//! [deny](Effect::DENY).
 //!
 //! Computed effects are used to capture policy evaluation results and add an additiional
-//! silence value to account for cases where a policy does not apply to conditions.
+//! [silence](SILENT) value resulting from cases where a configured policy does not apply under conditions.
 //!
-//! This module also defines how to combine computed effects for a principal. The basic
-//! combination rules are:
+//! This module also defines how to combine [computed effects](ComputedEffect) for a principal.
+//! The basic combination rules are:
 //!
 //! 1. Deny combined with any other effect results in Deny
-//! 2. Silence combined with any other effect results in the other effect.
-//! 3. Allow combined with Allow results in Allow
+//! 1. Silence combined with any other effect results in the other effect.
+//! 1. Allow combined with Allow results in Allow
 //!
 //! Combining policies is associative and commutative. Thus folding a sequence of computed
 //! effects results in the same value irrespective of the order they are combined.
 //!
 //! Combing a sequence of effects requires two additional rules to cover degenerate cases:
 //!
-//! 1. An empty sequence results in Silence
-//! 2. A singular sequence results in the value of the sole effect in the sequence
+//! 1. An empty sequence results in [silence](SILENT)
+//! 1. A singular sequence results in the value of the sole effect in the sequence
 //!
 //! This folding operation is captured in the FromIterator implementation of ComputedEffect and
 //! thus an iterator of ComputedEffects can be 'collect'ed' into a single ComputedEffect.
@@ -35,7 +36,7 @@ use std::borrow::Borrow;
 pub enum Effect {
     /// Definitiely authorized.
     ALLOW,
-    /// Definitel not authorized.
+    /// Definitely not authorized.
     DENY,
 }
 
