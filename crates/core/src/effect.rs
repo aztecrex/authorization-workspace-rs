@@ -31,7 +31,7 @@
 use std::borrow::Borrow;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
-/// Definite authorization
+/// Definite authorization.
 pub enum Effect {
     /// Definitiely authorized.
     ALLOW,
@@ -40,6 +40,8 @@ pub enum Effect {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
+/// Effected computed from a policy evaluation. Adds an additional value representing that a policy
+/// evalutation does not apply under given conditions.
 pub struct ComputedEffect(Option<Effect>);
 
 pub const SILENT: ComputedEffect = ComputedEffect(None);
