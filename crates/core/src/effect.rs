@@ -41,7 +41,7 @@ pub enum Effect {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
-/// Effected computed from a policy evaluation. Adds an additional value representing that a policy
+/// Effect computed from a policy evaluation. Adds an additional value representing that a policy
 /// evalutation does not apply under given conditions.
 pub struct ComputedEffect(Option<Effect>);
 
