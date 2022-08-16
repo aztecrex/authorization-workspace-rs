@@ -144,10 +144,6 @@ where
         use Assertion::*;
 
         match self {
-            // Compound(ps) => ps
-            //     .iter()
-            //     .map(|p| p.applies(resource, action, environment))
-            //     .any(|p| p),
             Unconditional(rmatch, amatch, _) => rmatch.test(resource) && amatch.test(action),
             Conditional(rmatch, amatch, _, condition) => {
                 rmatch.test(resource) && amatch.test(action) && environment.evaluate(condition)
