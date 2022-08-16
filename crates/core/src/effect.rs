@@ -72,9 +72,15 @@ where
     }
 }
 
-impl Into<Option<Effect>> for &ComputedEffect {
-    fn into(self) -> Option<Effect> {
-        self.0
+impl From<ComputedEffect> for Option<Effect> {
+    fn from(ceff: ComputedEffect) -> Self {
+        ceff.0
+    }
+}
+
+impl From<&ComputedEffect> for Option<Effect> {
+    fn from(ceff: &ComputedEffect) -> Self {
+        ceff.0
     }
 }
 
