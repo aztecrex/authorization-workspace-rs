@@ -38,6 +38,89 @@ impl Silent for ComputedEffect {
     }
 }
 
+pub enum Node<A> {
+    Leaf(A),
+    And(Box<Node<A>>, A),
+    Or(Box<Node<A>>, A),
+}
+
+impl<A> From<A> for Node<A> {
+    fn from(a: A) -> Self {
+        Self::Leaf(a)
+    }
+}
+
+impl<A> Node<A> {
+    pub fn and(self, a: A) -> Self {
+        Self::And(Box::new(self), a)
+    }
+    pub fn or(self, a: A) -> Self {
+        Self::Or(Box::new(self), a)
+    }
+}
+
+impl<A> Node<A> {
+    pub fn map(self, f: &impl Fn(A) -> A) -> Self {
+        match self {
+            Self::Leaf(a) => Self::Leaf(f(a)),
+            Self::And(l, a) => Self::And(Box::new(l.map(f)), f(a)),
+            Self::Or(l, a) => Self::Or(Box::new(l.map(f)), f(a)),
+        }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &A> {
+        struct Iter<'a, A>(Vec<&'a Node<A>>);
+        impl<'a, A> Iterator for Iter<'a, A> {
+            type Item = &'a A;
+            fn next(&mut self) -> Option<Self::Item> {
+                if let Some(n) = self.0.pop() {
+                    match n {
+                        Node::Leaf(a) => Some(a),
+                        Node::And(l, a) | Node::Or(l, a) => {
+                            self.0.push(l);
+                            Some(a)
+                        }
+                    }
+                } else {
+                    None
+                }
+            }
+        }
+        Iter(vec![&self])
+    }
+}
+
+impl Node<ComputedEffect> {
+    pub fn eval(self) -> ComputedEffect {
+        match self {
+            Self::Leaf(a) => a,
+            Self::And(l, a) => {
+                let l = l.eval();
+                match (l, a) {
+                    (ALLOW, ALLOW) => ALLOW,
+                    _ => DENY,
+                }
+            }
+            Self::Or(l, a) => match (l.eval(), a) {
+                (SILENT, r) => r,
+                (l, SILENT) => l,
+                (DENY, _) | (_, DENY) => DENY,
+                (ALLOW, ALLOW) => ALLOW,
+            },
+        }
+    }
+}
+
+fn wot(a: bool) -> bool {
+    !a
+}
+
+pub fn deleteme() {
+    let policy = Node::<bool>::from(true).and(false);
+
+    let policy = policy.map(&wot);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
