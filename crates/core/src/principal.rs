@@ -40,8 +40,8 @@ impl Silent for ComputedEffect {
 
 pub enum Node<A> {
     Leaf(A),
-    And(Box<Node<A>>, A),
-    Or(Box<Node<A>>, A),
+    And(Box<Node<A>>, Box<Node<A>>),
+    Or(Box<Node<A>>, Box<Node<A>>),
 }
 
 impl<A> From<A> for Node<A> {
@@ -51,11 +51,11 @@ impl<A> From<A> for Node<A> {
 }
 
 impl<A> Node<A> {
-    pub fn and(self, a: A) -> Self {
-        Self::And(Box::new(self), a)
+    pub fn and(self, r: Node<A>) -> Self {
+        Self::And(Box::new(self), Box::new(r))
     }
-    pub fn or(self, a: A) -> Self {
-        Self::Or(Box::new(self), a)
+    pub fn or(self, r: Node<A>) -> Self {
+        Self::Or(Box::new(self), Box::new(r))
     }
 }
 
@@ -63,8 +63,8 @@ impl<A> Node<A> {
     pub fn map(self, f: &impl Fn(A) -> A) -> Self {
         match self {
             Self::Leaf(a) => Self::Leaf(f(a)),
-            Self::And(l, a) => Self::And(Box::new(l.map(f)), f(a)),
-            Self::Or(l, a) => Self::Or(Box::new(l.map(f)), f(a)),
+            Self::And(l, r) => Self::And(Box::new(l.map(f)), Box::new(r.map(f))),
+            Self::Or(l, r) => Self::Or(Box::new(l.map(f)), Box::new(r.map(f))),
         }
     }
 
@@ -73,20 +73,40 @@ impl<A> Node<A> {
         impl<'a, A> Iterator for Iter<'a, A> {
             type Item = &'a A;
             fn next(&mut self) -> Option<Self::Item> {
-                if let Some(n) = self.0.pop() {
-                    match n {
-                        Node::Leaf(a) => Some(a),
-                        Node::And(l, a) | Node::Or(l, a) => {
+                while let Some(node) = self.0.pop() {
+                    match node {
+                        Node::Leaf(a) => return Some(a),
+                        Node::And(l, r) | Node::Or(l, r) => {
                             self.0.push(l);
-                            Some(a)
+                            self.0.push(r);
                         }
                     }
-                } else {
-                    None
                 }
+                None
             }
         }
         Iter(vec![&self])
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut A> {
+        struct Iter<'a, A>(Vec<&'a mut Node<A>>);
+        impl<'a, A> Iterator for Iter<'a, A> {
+            type Item = &'a mut A;
+
+            fn next(&mut self) -> Option<Self::Item> {
+                while let Some(node) = self.0.pop() {
+                    match node {
+                        Node::Leaf(a) => return Some(a),
+                        Node::And(l, r) | Node::Or(l, r) => {
+                            self.0.push(l);
+                            self.0.push(r);
+                        }
+                    }
+                }
+                None
+            }
+        }
+        Iter(vec![self])
     }
 }
 
@@ -94,17 +114,14 @@ impl Node<ComputedEffect> {
     pub fn eval(self) -> ComputedEffect {
         match self {
             Self::Leaf(a) => a,
-            Self::And(l, a) => {
-                let l = l.eval();
-                match (l, a) {
-                    (ALLOW, ALLOW) => ALLOW,
-                    _ => DENY,
-                }
-            }
-            Self::Or(l, a) => match (l.eval(), a) {
+            Self::And(l, r) => match (l.eval(), r.eval()) {
+                (ALLOW, ALLOW) => ALLOW,
+                _ => DENY,
+            },
+            Self::Or(l, r) => match (l.eval(), r.eval()) {
                 (SILENT, r) => r,
-                (l, SILENT) => l,
-                (DENY, _) | (_, DENY) => DENY,
+                (ALLOW, SILENT) => ALLOW,
+                (DENY, _) | (ALLOW, DENY) => DENY,
                 (ALLOW, ALLOW) => ALLOW,
             },
         }
@@ -116,9 +133,9 @@ fn wot(a: bool) -> bool {
 }
 
 pub fn deleteme() {
-    let policy = Node::<bool>::from(true).and(false);
+    let policy: Node<bool> = Node::from(true).and(false.into());
 
-    let policy = policy.map(&wot);
+    let _policy = policy.map(&wot);
 }
 
 #[cfg(test)]
