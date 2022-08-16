@@ -219,7 +219,7 @@ where
     type Item = SubjectAssertion<CExp>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(snext) = self.source.next() {
+        for snext in self.source.by_ref() {
             if snext.applies_to_subject(self.resource, self.action) {
                 match snext {
                     Assertion::Conditional(_, _, eff, exp) => {
