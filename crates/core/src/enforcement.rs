@@ -3,15 +3,23 @@
 //     pub resource: Res,
 // }
 
-pub struct Azn<Subj>(pub Subj, pub bool);
+pub struct Authorization<Subj>(pub Subj, pub bool);
 
 pub struct Authorizations<Azn>(pub Vec<Azn>);
 
-impl<Subj> FromIterator<Azn<Subj>> for Authorizations<Azn<Subj>> {
-    fn from_iter<T: IntoIterator<Item = Azn<Subj>>>(items: T) -> Self {
+impl<Subj> Authorizations<Authorization<Subj>> {
+    pub fn authorized(&self) -> bool {
+        !self.0.is_empty() && self.0.iter().all(|azn| azn.1)
+    }
+}
+
+impl<Subj> FromIterator<Authorization<Subj>> for Authorizations<Authorization<Subj>> {
+    fn from_iter<T: IntoIterator<Item = Authorization<Subj>>>(items: T) -> Self {
         Authorizations(items.into_iter().collect())
     }
 }
+
+impl<Subj> IntoIterator for Authorizations<Authorization<Subj>> {}
 
 pub trait Oracle {
     type Principal;
