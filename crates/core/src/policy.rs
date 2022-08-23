@@ -13,6 +13,34 @@ use crate::environment::Environment;
 use super::effect::*;
 use super::matcher::*;
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Assertion2<SMatch, CExp> {
+    Conditional(Effect, SMatch, CExp),
+    Unconditional(Effect, SMatch),
+}
+
+impl<SMatch, CExp> Assertion2<SMatch, CExp> {
+    /// Create an asserion that all access is denied.
+    pub fn deny_all() -> Self
+    where
+        SMatch: ExtendedMatcher,
+    {
+        Assertion2::Unconditional(SMatch::match_any(), Effect::DENY)
+    }
+
+    /// Create an asserion that any access is allowed.
+    pub fn allow_any() -> Self
+    where
+        RMatch: ExtendedMatcher,
+        AMatch: ExtendedMatcher,
+    {
+        Assertion::Unconditional(RMatch::match_any(), AMatch::match_any(), Effect::ALLOW)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct Policy2<SMatch, CExp>(Vec<Assertion2<SMatch, CExp>>);
+
 /// Authorization policy assertion.
 ///
 #[derive(Clone, Debug, PartialEq, Eq)]
