@@ -8,6 +8,8 @@
 //! the [definite effect](Effect) of matching some conditions.
 //!
 
+use std::iter::Filter;
+
 use crate::environment::Environment;
 
 use super::effect::*;
@@ -25,17 +27,53 @@ impl<SMatch, CExp> Assertion2<SMatch, CExp> {
     where
         SMatch: ExtendedMatcher,
     {
-        Assertion2::Unconditional(SMatch::match_any(), Effect::DENY)
+        Assertion2::Unconditional(Effect::DENY, SMatch::match_any())
     }
 
     /// Create an asserion that any access is allowed.
     pub fn allow_any() -> Self
     where
-        RMatch: ExtendedMatcher,
-        AMatch: ExtendedMatcher,
+        SMatch: ExtendedMatcher,
     {
-        Assertion::Unconditional(RMatch::match_any(), AMatch::match_any(), Effect::ALLOW)
+        Assertion2::Unconditional(Effect::ALLOW, SMatch::match_any())
     }
+
+    pub fn applies_to_subject<Subj>(&self, subject: &Subj) -> bool
+    where
+        SMatch: Matcher<Target = Subj>,
+    {
+        match self {
+            Assertion2::Unconditional(_, matcher) => matcher.test(subject),
+            Assertion2::Conditional(_, matcher, _) => matcher.test(subject),
+        }
+    }
+}
+
+pub trait SubjectFilter<As, Subj> {
+    fn for_subject(self, subject: &Subj) -> Box<dyn Iterator<Item = As> + '_>;
+}
+
+impl<SMatch, CExp, Subj, I> SubjectFilter<Assertion2<SMatch, CExp>, Subj> for I
+where
+    I: IntoIterator<Item = Assertion2<SMatch, CExp>>,
+    <I as IntoIterator>::IntoIter: 'static,
+    SMatch: Matcher<Target = Subj>,
+{
+    fn for_subject(
+        self,
+        subject: &Subj,
+    ) -> Box<dyn Iterator<Item = Assertion2<SMatch, CExp>> + '_> {
+        Box::new(self.into_iter().filter(|a| a.applies_to_subject(subject)))
+    }
+}
+
+pub trait ForSubject<Subj> {
+    type CExp;
+
+    fn for_subject(
+        self,
+        subject: &Subj,
+    ) -> Box<dyn Iterator<Item = SubjectAssertion<Self::CExp>> + '_>;
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
